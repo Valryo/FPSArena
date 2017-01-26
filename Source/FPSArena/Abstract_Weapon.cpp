@@ -9,19 +9,14 @@ AAbstract_Weapon::AAbstract_Weapon()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	AimingDownSight = false;
 }
 
-bool AAbstract_Weapon::Fire()
-{
-	return false;
-}
 
-bool AAbstract_Weapon::Reload()
+bool AAbstract_Weapon::ToggleAim_Implementation()
 {
-	return false;
-}
+	AimingDownSight = !AimingDownSight;
 
-bool AAbstract_Weapon::Aim()
-{
-	return false;
+	return true;
 }

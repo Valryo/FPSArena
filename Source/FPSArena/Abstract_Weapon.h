@@ -14,6 +14,15 @@ public:
 	// Sets default values for this actor's properties
 	AAbstract_Weapon();
 
+	// ---------------------------------------------
+	// -===- Properties hidden from the editor -===-
+	// ---------------------------------------------
+	UPROPERTY()
+		bool AimingDownSight;
+
+	// ---------------------------------------------
+	// -===- Properties editable in the editor -===-
+	// ---------------------------------------------
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
 		int32 Damage;
 
@@ -59,13 +68,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float AccuracyJumping;
 		
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-		virtual bool Fire();
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-		virtual bool Reload();
+	// ---------------------------------------------
+	// -===-  Methods editable in the editor   -===-
+	// ---------------------------------------------
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Weapon")
+		bool Fire();
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-		virtual bool Aim();
+	UFUNCTION(BlueprintImplementableEvent,BlueprintCallable, Category = "Weapon")
+		bool Reload();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		bool ToggleAim();
 
 };
