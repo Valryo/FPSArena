@@ -32,6 +32,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
 		float BulletVelocity;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
+		float ShortReloadTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
+		float LongReloadTime;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		float MagazineSize;
 
