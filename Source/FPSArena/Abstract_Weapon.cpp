@@ -2,6 +2,7 @@
 
 #include "FPSArena.h"
 #include "Abstract_Weapon.h"
+#include "Abstract_Projectile.h"
 
 
 // Sets default values
@@ -23,11 +24,47 @@ AAbstract_Weapon::AAbstract_Weapon()
 	FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
 }
 
-void AAbstract_Weapon::BeginPlay()
+void AAbstract_Weapon::OnFire_Implementation()
 {
-	// Call the base class  
-	Super::BeginPlay();
+	// try and fire a projectile
+	if (ProjectileClass != NULL)
+	{
+		UWorld* const World = GetWorld();
+		if (World != NULL)
+		{
+			FRotator SpawnRotation = GetActorRotation();
+			SpawnRotation.Yaw += 90;
+			const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
+
+			//Set Spawn Collision Handling Override
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+			// spawn the projectile at the muzzle
+			World->SpawnActor<AAbstract_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, SpawnLocation.ToString() + "\n" + SpawnRotation.ToString());
+		}
+	}
+
+	// try and play the sound if specified
+	if (FireSound != NULL)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+	}
+
+	//// try and play a firing animation if specified
+	//if (FireAnimation != NULL)
+	//{
+	//	// Get the animation object for the arms mesh
+	//	UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
+	//	if (AnimInstance != NULL)
+	//	{
+	//		AnimInstance->Montage_Play(FireAnimation, 1.f);
+	//	}
+	//}
 }
+
 
 bool AAbstract_Weapon::ToggleAim_Implementation()
 {

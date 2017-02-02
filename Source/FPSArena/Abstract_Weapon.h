@@ -54,8 +54,6 @@ public:
 	// Sets default values for this actor's properties
 	AAbstract_Weapon();
 
-	virtual void BeginPlay();
-
 	/** Projectile class to spawn */
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		TSubclassOf<class AAbstract_Projectile> ProjectileClass;
@@ -66,7 +64,8 @@ public:
 
 protected:
 	/** Fires a projectile. */
-	void OnFire();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		void OnFire();
 
 
 	// ---------------------------------------------
