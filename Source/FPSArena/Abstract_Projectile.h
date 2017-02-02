@@ -9,27 +9,25 @@ UCLASS(abstract)
 class FPSARENA_API AAbstract_Projectile : public AActor
 {
 	GENERATED_BODY()
+
+	/** Sphere collision component */
+	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+		class USphereComponent* CollisionComp;
+
+	/** Projectile movement component */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+		class UProjectileMovementComponent* ProjectileMovement;
 	
 public:	
 	// Sets default values for this actor's properties
 	AAbstract_Projectile();
 
-	// ---------------------------------------------
-	// -===- Properties editable in the editor -===-
-	// ---------------------------------------------
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet property")
-		int32 Damage;
+	/** called when projectile hits something */
+	UFUNCTION()
+		void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet property")
-		float Velocity;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet property")
-		float Lifespan;
-
-	/** Projectile movement component **/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-		UProjectileMovementComponent* ProjectileMovement;
-
-	/** inits velocity of the projectile in the shoot direction */
-	void InitVelocity(const FVector& ShootDirection);
+	/** Returns CollisionComp subobject **/
+	FORCEINLINE class USphereComponent* GetCollisionComp() const { return CollisionComp; }
+	/** Returns ProjectileMovement subobject **/
+	FORCEINLINE class UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovement; }
 };
