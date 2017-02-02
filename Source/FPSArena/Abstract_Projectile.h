@@ -17,12 +17,19 @@ public:
 	// ---------------------------------------------
 	// -===- Properties editable in the editor -===-
 	// ---------------------------------------------
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Property")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet property")
 		int32 Damage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Property")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet property")
 		float Velocity;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Property")
-		flaot Lifespan;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet property")
+		float Lifespan;
+
+	/** Projectile movement component **/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+		UProjectileMovementComponent* ProjectileMovement;
+
+	/** inits velocity of the projectile in the shoot direction */
+	void InitVelocity(const FVector& ShootDirection);
 };
