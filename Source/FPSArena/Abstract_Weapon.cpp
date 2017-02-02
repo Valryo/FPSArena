@@ -12,7 +12,7 @@ AAbstract_Weapon::AAbstract_Weapon()
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
-	//FP_Gun->SetOnlyOwnerSee(false);
+	FP_Gun->SetOnlyOwnerSee(false);
 	FP_Gun->bCastDynamicShadow = false;
 	FP_Gun->CastShadow = false;
 	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
