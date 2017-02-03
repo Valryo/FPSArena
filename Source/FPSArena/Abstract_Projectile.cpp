@@ -9,7 +9,7 @@ AAbstract_Projectile::AAbstract_Projectile()
 {
 	Damage = 10;
 	Velocity = 7500.f;
-	Lifespan = 3.f;
+	Lifespan = 1.f;
 
 	// Use a sphere as a simple collision representation
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
@@ -39,11 +39,7 @@ AAbstract_Projectile::AAbstract_Projectile()
 
 void AAbstract_Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	// Only add impulse and destroy projectile if we hit a physics
-	if ((OtherActor != NULL) && (OtherActor != this) && (OtherComp != NULL) && OtherComp->IsSimulatingPhysics())
-	{
-		OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "On Hit");
 
-		Destroy();
-	}
+	Destroy();
 }
