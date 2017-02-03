@@ -5,9 +5,9 @@
 #include "GameFramework/Actor.h"
 #include "Abstract_Weapon.generated.h"
 
-namespace EWeaponState
+namespace EWeapon
 {
-	enum Type
+	enum State
 	{
 		Idle,
 		Firing,
@@ -21,20 +21,17 @@ namespace EWeaponState
 		ERocket,
 		EMax,
 	};
+
+	
 }
 
-USTRUCT()
-struct FWeaponAnim
+UENUM(BlueprintType)
+enum class WeaponClass : uint8
 {
-	GENERATED_USTRUCT_BODY()
-
-		/** animation played on pawn (1st person view) */
-		UPROPERTY(EditDefaultsOnly, Category = Animation)
-		UAnimMontage* Pawn1P;
-
-	/** animation played on pawn (3rd person view) */
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
-		UAnimMontage* Pawn3P;
+	WC_Auto		UMETA(DisplayName = "Automatic"),
+	WC_SemiAuto	UMETA(DisplayName = "Semi Automatic"),
+	WC_Burst	UMETA(DisplayName = "Burst Firing"),
+	WC_Shotgun	UMETA(DisplayName = "Shotgun")
 };
 
 UCLASS(abstract)
@@ -63,22 +60,44 @@ public:
 		class USoundBase* FireSound;
 
 protected:
-	/** Fires a projectile. */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		void OnFire();
+	bool AimingDownSight;
+	bool PendingReload;
 
+	/** current weapon state */
+	EWeapon::State CurrentState;
+
+	/** update weapon state */
+	void SetWeaponState(EWeapon::State NewState);
+
+	/** get current weapon state */
+	EWeapon::State GetCurrentState() const;
+
+	/** check if weapon can be reloaded */
+	bool CanReload() const;
+
+	/** check if weapon can fire */
+	bool CanFire() const;
+
+	/** timer between shots */
+	FTimerHandle RefireTimerHandle;
+
+	/** last time the weapon fired */
+	float LastFireTime;
 
 	// ---------------------------------------------
 	// -===- Properties editable in the editor -===-
 	// ---------------------------------------------
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
 		int32 Damage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
 		float FireRate;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
 		float BulletVelocity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
+		WeaponClass WeaponClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
 		float ShortReloadTime;
@@ -121,7 +140,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float AccuracyJumping;
-		
 
 	// ---------------------------------------------
 	// -===-  Methods editable in the editor   -===-
@@ -138,6 +156,7 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		bool ToggleAim();
 
-
-	void Tick(float DeltaTime);
+	/** Fires a projectile. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		void FireWeapon();
 };

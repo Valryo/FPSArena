@@ -9,7 +9,7 @@
 AAbstract_Weapon::AAbstract_Weapon()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
@@ -22,84 +22,124 @@ AAbstract_Weapon::AAbstract_Weapon()
 	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
 	FP_MuzzleLocation->SetupAttachment(FP_Gun);
 	FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
+
+	AimingDownSight = false;
+	PendingReload = false;
+
+	CurrentState = EWeapon::Idle;
+	WeaponClass = WeaponClass::WC_Auto;
+
+	LastFireTime = 0.f;
 }
 
-void AAbstract_Weapon::OnFire_Implementation()
+void AAbstract_Weapon::SetWeaponState(EWeapon::State NewState)
 {
-	// try and fire a projectile
-	if (ProjectileClass != NULL)
+	CurrentState = NewState;
+}
+
+EWeapon::State AAbstract_Weapon::GetCurrentState() const
+{
+	return EWeapon::State();
+}
+
+bool AAbstract_Weapon::CanFire() const
+{
+	return true;
+}
+
+bool AAbstract_Weapon::CanReload() const
+{
+	return false;
+}
+
+void AAbstract_Weapon::FireWeapon_Implementation()
+{
+	float timeBetweenShots = (1 / (FireRate / 60));
+
+	if (UGameplayStatics::GetRealTimeSeconds(GetWorld()) - LastFireTime > timeBetweenShots - 0.01)
 	{
-		UWorld* const World = GetWorld();
-		if (World != NULL)
+		// try and fire a projectile
+		if (ProjectileClass != NULL)
 		{
-			FRotator SpawnRotation = GetActorRotation();
-			SpawnRotation.Yaw += 90;
-			const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
+			UWorld* const World = GetWorld();
+			if (World != NULL)
+			{
+				FRotator SpawnRotation = GetActorRotation();
+				SpawnRotation.Yaw += 90;
+				const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
 
-			//Set Spawn Collision Handling Override
-			FActorSpawnParameters ActorSpawnParams;
-			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+				//Set Spawn Collision Handling Override
+				FActorSpawnParameters ActorSpawnParams;
+				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
-			// spawn the projectile at the muzzle
-			World->SpawnActor<AAbstract_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+				// spawn the projectile at the muzzle
+				World->SpawnActor<AAbstract_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+
+				//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, SpawnLocation.ToString() + "\n" + SpawnRotation.ToString());
+			}
 		}
-	}
 
-	// try and play the sound if specified
-	if (FireSound != NULL)
+		// try and play the sound if specified
+		if (FireSound != NULL)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+		}
+
+		//// try and play a firing animation if specified
+		//if (FireAnimation != NULL)
+		//{
+		//	// Get the animation object for the arms mesh
+		//	UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
+		//	if (AnimInstance != NULL)
+		//	{
+		//		AnimInstance->Montage_Play(FireAnimation, 1.f);
+		//	}
+		//}
+
+		LastFireTime = UGameplayStatics::GetRealTimeSeconds(GetWorld());
+	}
+	else
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "Failed to shoot - Time too short");
 	}
-
-	//// try and play a firing animation if specified
-	//if (FireAnimation != NULL)
-	//{
-	//	// Get the animation object for the arms mesh
-	//	UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-	//	if (AnimInstance != NULL)
-	//	{
-	//		AnimInstance->Montage_Play(FireAnimation, 1.f);
-	//	}
-	//}
 }
 
 
 bool AAbstract_Weapon::ToggleAim_Implementation()
 {
-	//AimingDownSight = !AimingDownSight;
+	AimingDownSight = !AimingDownSight;
 
 	return true;
 }
 
 bool AAbstract_Weapon::StartFiring_Implementation()
 {
-	/*if (CurrentState == EWeaponState::Idle)
+	if (CanFire())
 	{
-		this->CurrentState = EWeaponState::Firing;
+		CurrentState = EWeapon::Firing;
+		float timeBetweenShots = (1 / (FireRate / 60));
+
+		if (WeaponClass == WeaponClass::WC_Auto)
+		{
+			GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::FireWeapon_Implementation, timeBetweenShots, true, 0.f);
+		}
+		else if (WeaponClass == WeaponClass::WC_SemiAuto)
+		{
+			//GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::FireWeapon_Implementation, timeBetweenShots, false, 0.f);
+			FireWeapon();
+		}
 
 		return true;
-	}*/
+	}
 
 	return false;
 }
 
 bool AAbstract_Weapon::StopFiring_Implementation()
 {
-	/*if (CurrentState == EWeaponState::Firing)
-	{
-		this->CurrentState = EWeaponState::Idle;
-
-		return true;
-	}*/
+	CurrentState = EWeapon::Idle;
 	
-	return false;
-}
+	GetWorldTimerManager().ClearTimer(RefireTimerHandle);
 
-void AAbstract_Weapon::Tick(float DeltaTime)
-{
-	//if (CurrentState == EWeaponState::Firing)
-	//{
-	//	//FVector ShootDir = GetAdjustedAim();
-	//	//FVector Origin = GetMuzzleLocation();
-	//}
+	return true;
 }
