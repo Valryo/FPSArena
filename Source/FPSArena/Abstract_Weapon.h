@@ -30,8 +30,7 @@ enum class WeaponClass : uint8
 {
 	WC_Auto		UMETA(DisplayName = "Automatic"),
 	WC_SemiAuto	UMETA(DisplayName = "Semi Automatic"),
-	WC_Burst	UMETA(DisplayName = "Burst Firing"),
-	WC_Shotgun	UMETA(DisplayName = "Shotgun")
+	WC_Burst	UMETA(DisplayName = "Burst Firing")
 };
 
 UCLASS(abstract)
@@ -60,8 +59,15 @@ public:
 		class USoundBase* FireSound;
 
 protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
 	bool AimingDownSight;
 	bool PendingReload;
+	bool IsEquipped;
+	bool PendingEquip;
+	bool WantsToFire;
+	bool Refiring;
 
 	/** current weapon state */
 	EWeapon::State CurrentState;
@@ -78,11 +84,44 @@ protected:
 	/** check if weapon can fire */
 	bool CanFire() const;
 
+	/** consume a ammo */
+	void UseAmmo();
+
+	/** determines the actual weapon state */
+	void DetermineWeaponState();
+
+	/** starts firing */
+	void OnBurstStarted();
+
+	/** stops firing */
+	void OnBurstFinished();
+
+	/** handles firing */
+	void HandleFiring();
+
+	/** reloads the weapon */
+	void ReloadWeapon();
+
+	/** Handle for efficient management of StopReload timer */
+	FTimerHandle TimerHandle_StopReload;
+
+	/** Handle for efficient management of ReloadWeapon timer */
+	FTimerHandle TimerHandle_ReloadWeapon;
+
 	/** timer between shots */
 	FTimerHandle RefireTimerHandle;
 
 	/** last time the weapon fired */
 	float LastFireTime;
+
+	/** amount of bullets left in the magazine */
+	int CurrentAmmoInClip;
+
+	/** amount of bullet left in the reserve */
+	int CurrentAmmoLeft;
+
+	/** times in second between two consecutive shots */
+	float TimeBetweenShots;
 
 	// ---------------------------------------------
 	// -===- Properties editable in the editor -===-
@@ -106,14 +145,11 @@ protected:
 		float LongReloadTime;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		float MagazineSize;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		float NbAmmoInMagazine;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		float NbAmmoInReserve;
+		int MagazineSize;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
+		int MaxAmmo;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float VerticalRecoil;
 
@@ -145,13 +181,16 @@ protected:
 	// -===-  Methods editable in the editor   -===-
 	// ---------------------------------------------
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		bool StartFiring();
+		void StartFiring();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		bool StopFiring();
+		void StopFiring();
 
-	UFUNCTION(BlueprintImplementableEvent,BlueprintCallable, Category = "Weapon")
-		bool Reload();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		void StartReloading();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		void StopReloading();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		bool ToggleAim();
