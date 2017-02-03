@@ -42,8 +42,6 @@ void AAbstract_Weapon::OnFire_Implementation()
 
 			// spawn the projectile at the muzzle
 			World->SpawnActor<AAbstract_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-			
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, SpawnLocation.ToString() + "\n" + SpawnRotation.ToString());
 		}
 	}
 
