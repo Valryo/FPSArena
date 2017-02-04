@@ -7,9 +7,39 @@
 // Sets default values
 AAbstract_Projectile::AAbstract_Projectile()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	Damage = 10;
+	Velocity = 7500.f;
+	Lifespan = 1.f;
 
-	
+	// Use a sphere as a simple collision representation
+	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+	CollisionComp->InitSphereRadius(5.0f);
+	CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
+	CollisionComp->OnComponentHit.AddDynamic(this, &AAbstract_Projectile::OnHit);		// set up a notification for when this component hits something blocking
+
+	// Players can't walk on it
+	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
+	CollisionComp->CanCharacterStepUpOn = ECB_No;
+
+	// Set as root component
+	RootComponent = CollisionComp;
+
+	// Use a ProjectileMovementComponent to govern this projectile's movement
+	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
+	ProjectileMovement->UpdatedComponent = CollisionComp;
+	ProjectileMovement->InitialSpeed = Velocity;
+	ProjectileMovement->MaxSpeed = Velocity;
+	ProjectileMovement->bRotationFollowsVelocity = true;
+	ProjectileMovement->bShouldBounce = false;
+	ProjectileMovement->ProjectileGravityScale = 0.f;
+
+	// Die after 3 seconds by default
+	InitialLifeSpan = Lifespan;
 }
 
+void AAbstract_Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "On Hit");
+
+	Destroy();
+}
