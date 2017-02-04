@@ -111,7 +111,8 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 			// spawn the projectile at the muzzle
-			World->SpawnActor<AAbstract_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			AAbstract_Projectile* Projectile = World->SpawnActor<AAbstract_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			Projectile->InitProjectileProperties(this->Damage, this->ProjectileVelocity * 100, this->ProjectileLifeSpan);
 
 			//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, SpawnLocation.ToString() + "\n" + SpawnRotation.ToString());
 		}
