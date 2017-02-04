@@ -187,7 +187,7 @@ protected:
 		float AccuracyJumping;
 
 
-
+	public :
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void StartFiring();
 
