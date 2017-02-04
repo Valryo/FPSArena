@@ -8,14 +8,14 @@
 AAbstract_Projectile::AAbstract_Projectile()
 {
 	Damage = 10;
-	Velocity = 7500.f;
+	Velocity = 60000.f;
 	Lifespan = 1.f;
 
 	// Use a sphere as a simple collision representation
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	CollisionComp->InitSphereRadius(5.0f);
 	CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
-	CollisionComp->OnComponentHit.AddDynamic(this, &AAbstract_Projectile::OnHit);		// set up a notification for when this component hits something blocking
+	CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &AAbstract_Projectile::OnHit);		// set up a notification for when this component hits something blocking
 
 	// Players can't walk on it
 	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
@@ -33,13 +33,25 @@ AAbstract_Projectile::AAbstract_Projectile()
 	ProjectileMovement->bShouldBounce = false;
 	ProjectileMovement->ProjectileGravityScale = 0.f;
 
-	// Die after 3 seconds by default
+	// Die after 1 second by default
 	InitialLifeSpan = Lifespan;
 }
 
-void AAbstract_Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void AAbstract_Projectile::OnHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "On Hit");
+	/*GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "On Hit");
 
-	Destroy();
+	Destroy();*/
+}
+
+void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity, float Lifespan)
+{
+	this->Damage = Damage;
+	this->Velocity = Velocity;
+	this->Lifespan = Lifespan;
+
+	ProjectileMovement->InitialSpeed = Velocity;
+	ProjectileMovement->MaxSpeed = Velocity;
+
+	SetLifeSpan(Lifespan);
 }

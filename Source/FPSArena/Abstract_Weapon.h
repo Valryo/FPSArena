@@ -123,30 +123,39 @@ protected:
 	/** times in second between two consecutive shots */
 	float TimeBetweenShots;
 
-	// ---------------------------------------------
-	// -===- Properties editable in the editor -===-
-	// ---------------------------------------------
+	/** Damage dealt by the projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
 		int32 Damage;
 
+	/** Fire rate in rounds per minutes */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
 		float FireRate;
 	
+	/** Projectile velocity in meters per second */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
-		float BulletVelocity;
+		float ProjectileVelocity;
 
+	/** Projectile LifeSpan in seconds */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
+		float ProjectileLifeSpan;
+
+	/** Class of the weapon : auto, semi-auto, burst */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
 		WeaponClass WeaponClass;
 
+	/** Reload time in seconds when there's still a bullet in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
 		float ShortReloadTime;
 
+	/** Reload time in seconds when there's no bullet in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
 		float LongReloadTime;
 
+	/** Number of rounds in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MagazineSize;
 	
+	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MaxAmmo;
 
@@ -177,9 +186,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float AccuracyJumping;
 
-	// ---------------------------------------------
-	// -===-  Methods editable in the editor   -===-
-	// ---------------------------------------------
+
+
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void StartFiring();
 
