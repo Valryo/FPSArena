@@ -5,34 +5,50 @@
 #include "GameFramework/Actor.h"
 #include "Abstract_Projectile.generated.h"
 
-UCLASS(abstract)
+UCLASS(Abstract, Blueprintable)
 class FPSARENA_API AAbstract_Projectile : public AActor
 {
 	GENERATED_BODY()
 
-	/** Sphere collision component */
-	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
-		class USphereComponent* CollisionComp;
-
-	/** Projectile movement component */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
-		class UProjectileMovementComponent* ProjectileMovement;
-	
-public:	
-	// Sets default values for this actor's properties
 	AAbstract_Projectile();
 
-	/** called when projectile hits something */
-	UFUNCTION()
-		void OnHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+public:
+	/** initial setup */
+	virtual void PostInitializeComponents() override;
 
-	UFUNCTION()
-		void InitProjectileProperties(int32 Damage = 10.f, float Velocity = 60000.f, float Lifespan = 1.f);
+	/** setup velocity */
+	void InitVelocity(FVector& ShootDirection);
 
+	/** handle hit */
+	UFUNCTION()
+		void OnImpact(const FHitResult& HitResult);
+
+private:
+	/** movement component */
+	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+		UProjectileMovementComponent* MovementComp;
+
+	/** collisions */
+	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+		USphereComponent* CollisionComp;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+		UParticleSystemComponent* ParticleComp;
+
+	/*UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+		UStaticMeshComponent* MeshComp;*/
+
+protected:
+	/** shutdown projectile and prepare for destruction */
+	void DisableAndDestroy();
+
+protected:
+	/** Returns MovementComp subobject **/
+	FORCEINLINE UProjectileMovementComponent* GetMovementComp() const { return MovementComp; }
 	/** Returns CollisionComp subobject **/
-	FORCEINLINE class USphereComponent* GetCollisionComp() const { return CollisionComp; }
-	/** Returns ProjectileMovement subobject **/
-	FORCEINLINE class UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovement; }
+	FORCEINLINE USphereComponent* GetCollisionComp() const { return CollisionComp; }
+	/** Returns ParticleComp subobject **/
+	FORCEINLINE UParticleSystemComponent* GetParticleComp() const { return ParticleComp; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet Properties")

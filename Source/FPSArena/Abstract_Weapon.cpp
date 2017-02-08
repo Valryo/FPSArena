@@ -3,6 +3,7 @@
 #include "FPSArena.h"
 #include "Abstract_Weapon.h"
 #include "Abstract_Projectile.h"
+#include "Net/UnrealNetwork.h"
 
 
 // Sets default values
@@ -40,6 +41,10 @@ AAbstract_Weapon::AAbstract_Weapon()
 
 	ShortReloadTime = 0.f;
 	LongReloadTime = 0.f;
+
+	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
+	bReplicates = true;
+	bNetUseOwnerRelevancy = true;
 }
 
 void AAbstract_Weapon::BeginPlay()
@@ -102,19 +107,12 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 		UWorld* const World = GetWorld();
 		if (World != NULL)
 		{
-			FRotator SpawnRotation = GetActorRotation();
-			SpawnRotation.Yaw += 90;
-			const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
+			FVector ShootDir = GetActorRotation().Vector();
+			FVector Origin = FP_MuzzleLocation->GetComponentLocation();
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Origin.ToString());
+			ServerFireProjectile(Origin, ShootDir);
 
-			//Set Spawn Collision Handling Override
-			FActorSpawnParameters ActorSpawnParams;
-			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-			// spawn the projectile at the muzzle
-			AAbstract_Projectile* Projectile = World->SpawnActor<AAbstract_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-			Projectile->InitProjectileProperties(this->Damage, this->ProjectileVelocity * 100, this->ProjectileLifeSpan);
-
-			//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, SpawnLocation.ToString() + "\n" + SpawnRotation.ToString());
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::FromInt(CurrentAmmoInClip) + " - " + FString::FromInt(CurrentAmmoLeft));
 		}
 	}
 
@@ -124,7 +122,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
 	}
 
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::FromInt(CurrentAmmoInClip) + " - " + FString::FromInt(CurrentAmmoLeft));
+	
 	//// try and play a firing animation if specified
 	//if (FireAnimation != NULL)
 	//{
@@ -137,6 +135,44 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 	//}
 }
 
+bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector_NetQuantizeNormal ShootDir)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Origin.ToString());
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Hello");
+	return true;
+}
+
+void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVector_NetQuantizeNormal ShootDir)
+{
+	
+
+	//FRotator SpawnRotation = GetActorRotation();
+	//SpawnRotation.Yaw += 90;
+	//const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
+
+	////Set Spawn Collision Handling Override
+	//FActorSpawnParameters ActorSpawnParams;
+	//ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+	// spawn the projectile at the muzzle
+	//AAbstract_Projectile* Projectile = GetWorld()->SpawnActor<AAbstract_Projectile>(ProjectileClass, Origin, SpawnRotation, ActorSpawnParams);
+	//Projectile->InitProjectileProperties(this->Damage, this->ProjectileVelocity * 100, this->ProjectileLifeSpan);
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Origin.ToString());
+	FTransform SpawnTM(ShootDir.Rotation(), Origin);
+	AAbstract_Projectile* Projectile = Cast<AAbstract_Projectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, SpawnTM));
+	
+	if (Projectile)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
+
+		Projectile->Instigator = Instigator;
+		Projectile->SetOwner(this);
+		Projectile->InitVelocity(ShootDir);
+
+		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
+	}
+}
+
 bool AAbstract_Weapon::ToggleAim_Implementation()
 {
 	AimingDownSight = !AimingDownSight;
@@ -146,6 +182,14 @@ bool AAbstract_Weapon::ToggleAim_Implementation()
 
 void AAbstract_Weapon::StartFiring_Implementation()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Role == ROLE_Authority ? "True" : "False");
+
+	if (Role < ROLE_Authority)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server start fire");
+		ServerStartFire();
+	}
+
 	if (!WantsToFire)
 	{
 		WantsToFire = true;
@@ -155,11 +199,36 @@ void AAbstract_Weapon::StartFiring_Implementation()
 
 void AAbstract_Weapon::StopFiring_Implementation()
 {
+	if (Role < ROLE_Authority)
+	{
+		ServerStopFire();
+	}
+
 	if (WantsToFire)
 	{
 		WantsToFire = false;
 		DetermineWeaponState();
 	}
+}
+
+bool AAbstract_Weapon::ServerStartFire_Validate()
+{
+	return true;
+}
+
+void AAbstract_Weapon::ServerStartFire_Implementation()
+{
+	StartFiring();
+}
+
+bool AAbstract_Weapon::ServerStopFire_Validate()
+{
+	return true;
+}
+
+void AAbstract_Weapon::ServerStopFire_Implementation()
+{
+	StopFiring();
 }
 
 void AAbstract_Weapon::StartReloading_Implementation()
@@ -198,19 +267,21 @@ void AAbstract_Weapon::ReloadWeapon()
 	}
 }
 
+
+
 void AAbstract_Weapon::UseAmmo()
 {
 	CurrentAmmoInClip--;
 
-	if (CurrentAmmoInClip <= 0)
-	{
-		StopFiring();
-		
-		if (CanReload())
-		{
+	//if (CurrentAmmoInClip <= 0)
+	//{
+	//	StopFiring();
+	//	
+	//	if (CanReload())
+	//	{
 
-		}
-	}
+	//	}
+	//}
 }
 
 void AAbstract_Weapon::DetermineWeaponState()
@@ -266,6 +337,12 @@ void AAbstract_Weapon::OnBurstFinished()
 
 void AAbstract_Weapon::HandleFiring()
 {
+	// local client will notify server
+	if (Role == ROLE_SimulatedProxy)
+	{
+		ServerHandleFiring();
+	}
+
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
 		FireWeapon();
@@ -293,4 +370,89 @@ void AAbstract_Weapon::HandleFiring()
 	}
 
 	LastFireTime = GetWorld()->GetTimeSeconds();
+}
+
+bool AAbstract_Weapon::ServerHandleFiring_Validate()
+{
+	return true;
+}
+
+void AAbstract_Weapon::ServerHandleFiring_Implementation()
+{
+	const bool bShouldUpdateAmmo = (CurrentAmmoInClip > 0 && CanFire());
+
+	HandleFiring();
+
+	if (bShouldUpdateAmmo)
+	{
+		// update ammo
+		UseAmmo();
+	}
+}
+
+void AAbstract_Weapon::OnRep_MyPawn()
+{
+	
+}
+
+void AAbstract_Weapon::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
+{
+	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
+
+	DOREPLIFETIME(AAbstract_Weapon, MyPawn );
+
+	DOREPLIFETIME_CONDITION(AAbstract_Weapon, CurrentAmmoLeft,		COND_OwnerOnly );
+	DOREPLIFETIME_CONDITION(AAbstract_Weapon, CurrentAmmoInClip, COND_OwnerOnly );
+
+	//DOREPLIFETIME_CONDITION(AAbstarct_Weapon, BurstCounter,		COND_SkipOwner );
+	DOREPLIFETIME_CONDITION(AAbstract_Weapon, PendingReload,	COND_SkipOwner );
+}
+
+void AAbstract_Weapon::OnEnterInventory_Implementation(ACharacter* NewOwner)
+{
+	SetOwningPawn(NewOwner);
+}
+
+void AAbstract_Weapon::SetOwningPawn(ACharacter* NewOwner)
+{
+	if (MyPawn != NewOwner)
+	{
+		Instigator = NewOwner;
+		MyPawn = NewOwner;
+		// net owner for RPC calls
+		SetOwner(NewOwner);
+	}
+}
+
+void AAbstract_Weapon::AttachMeshToPawn_Implementation()
+{
+	if (MyPawn)
+	{
+		// Remove and hide both first and third person meshes
+		DetachMeshFromPawn();
+
+		// TODO : change attachpoint to the one defined in the player blueprint
+		// For locally controller players we attach both weapons and let the bOnlyOwnerSee, bOwnerNoSee flags deal with visibility.
+		//FOutputDeviceNull ar;
+		FName AttachPoint = "hand_r";/*MyPawn->CallFunctionByNameWithArguments(TEXT("GetWeaponAttachPoint"), ar, NULL, true);*/
+
+		if (MyPawn->IsLocallyControlled() == true)
+		{
+			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetMesh();
+			FP_Gun->SetHiddenInGame(false);
+			FP_Gun->AttachToComponent(PawnMesh1p, FAttachmentTransformRules::KeepRelativeTransform, AttachPoint);
+		}
+		else
+		{
+			USkeletalMeshComponent* UsePawnMesh = MyPawn->GetMesh();
+			FP_Gun->AttachToComponent(UsePawnMesh, FAttachmentTransformRules::KeepRelativeTransform, AttachPoint);
+			FP_Gun->SetHiddenInGame(false);
+		}
+	}
+}
+
+void AAbstract_Weapon::DetachMeshFromPawn()
+{
+	FP_Gun->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+	FP_Gun->SetHiddenInGame(true);
 }
