@@ -99,6 +99,10 @@ protected:
 	/** handles firing */
 	void HandleFiring();
 
+	/** [server] fire & update ammo */
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerHandleFiring();
+
 	/** reloads the weapon */
 	void ReloadWeapon();
 
@@ -123,24 +127,56 @@ protected:
 	/** times in second between two consecutive shots */
 	float TimeBetweenShots;
 
+
+	/** spawn projectile on server */
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerFireProjectile(FVector Origin, FVector_NetQuantizeNormal ShootDir);
+
+
+	
+
+
+	//////////////////////////////////////////////////////////////////////////
+	// Input - server side
+
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerStartFire();
+
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerStopFire();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "MyBPForCPP", Transient, ReplicatedUsing = OnRep_MyPawn)
+		ACharacter* MyPawn;
+
+	UFUNCTION()
+		void OnRep_MyPawn();
+
+public:
+	/** set the weapon's owning pawn */
+	void SetOwningPawn(ACharacter* NewOwner);
+
+	
+
+
+protected:
 	/** Damage dealt by the projectile */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		int32 Damage;
 
 	/** Fire rate in rounds per minutes */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		float FireRate;
 	
 	/** Projectile velocity in meters per second */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		float ProjectileVelocity;
 
 	/** Projectile LifeSpan in seconds */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		float ProjectileLifeSpan;
 
 	/** Class of the weapon : auto, semi-auto, burst */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Protperties")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		WeaponClass WeaponClass;
 
 	/** Reload time in seconds when there's still a bullet in the magazine */
@@ -206,4 +242,18 @@ protected:
 	/** Fires a projectile. */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void FireWeapon();
+
+	/** [server] weapon was added to pawn's inventory */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		void OnEnterInventory(ACharacter* NewOwner);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Inventory
+
+	/** attaches weapon mesh to pawn's mesh */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+	void AttachMeshToPawn();
+
+	/** detaches weapon mesh from pawn */
+	void DetachMeshFromPawn();
 };
