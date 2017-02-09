@@ -109,7 +109,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 		{
 			FVector ShootDir = GetActorRotation().Vector();
 			FVector Origin = FP_MuzzleLocation->GetComponentLocation();
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Origin.ToString());
+
 			ServerFireProjectile(Origin, ShootDir);
 
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::FromInt(CurrentAmmoInClip) + " - " + FString::FromInt(CurrentAmmoLeft));
@@ -137,8 +137,6 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 
 bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector_NetQuantizeNormal ShootDir)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Origin.ToString());
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Hello");
 	return true;
 }
 
@@ -146,31 +144,31 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 {
 	
 
-	//FRotator SpawnRotation = GetActorRotation();
-	//SpawnRotation.Yaw += 90;
-	//const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
+	FRotator SpawnRotation = GetActorRotation();
+	SpawnRotation.Yaw += 90;
+	const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
 
-	////Set Spawn Collision Handling Override
-	//FActorSpawnParameters ActorSpawnParams;
-	//ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+	//Set Spawn Collision Handling Override
+	FActorSpawnParameters ActorSpawnParams;
+	ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 	// spawn the projectile at the muzzle
-	//AAbstract_Projectile* Projectile = GetWorld()->SpawnActor<AAbstract_Projectile>(ProjectileClass, Origin, SpawnRotation, ActorSpawnParams);
+	AAbstract_Projectile* Projectile = GetWorld()->SpawnActor<AAbstract_Projectile>(ProjectileClass, Origin, SpawnRotation, ActorSpawnParams);
 	//Projectile->InitProjectileProperties(this->Damage, this->ProjectileVelocity * 100, this->ProjectileLifeSpan);
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Origin.ToString());
-	FTransform SpawnTM(ShootDir.Rotation(), Origin);
-	AAbstract_Projectile* Projectile = Cast<AAbstract_Projectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, SpawnTM));
-	
-	if (Projectile)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
 
-		Projectile->Instigator = Instigator;
-		Projectile->SetOwner(this);
-		Projectile->InitVelocity(ShootDir);
+	//FTransform SpawnTM(ShootDir.Rotation(), Origin);
+	//AAbstract_Projectile* Projectile = Cast<AAbstract_Projectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, SpawnTM));
+	//
+	//if (Projectile)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
 
-		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
-	}
+	//	Projectile->Instigator = Instigator;
+	//	Projectile->SetOwner(this);
+	//	Projectile->InitVelocity(ShootDir);
+
+	//	UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
+	//}
 }
 
 bool AAbstract_Weapon::ToggleAim_Implementation()
@@ -182,11 +180,8 @@ bool AAbstract_Weapon::ToggleAim_Implementation()
 
 void AAbstract_Weapon::StartFiring_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, Role == ROLE_Authority ? "True" : "False");
-
 	if (Role < ROLE_Authority)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server start fire");
 		ServerStartFire();
 	}
 
@@ -390,23 +385,23 @@ void AAbstract_Weapon::ServerHandleFiring_Implementation()
 	}
 }
 
-void AAbstract_Weapon::OnRep_MyPawn()
-{
-	
-}
-
-void AAbstract_Weapon::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
-{
-	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-
-	DOREPLIFETIME(AAbstract_Weapon, MyPawn );
-
-	DOREPLIFETIME_CONDITION(AAbstract_Weapon, CurrentAmmoLeft,		COND_OwnerOnly );
-	DOREPLIFETIME_CONDITION(AAbstract_Weapon, CurrentAmmoInClip, COND_OwnerOnly );
-
-	//DOREPLIFETIME_CONDITION(AAbstarct_Weapon, BurstCounter,		COND_SkipOwner );
-	DOREPLIFETIME_CONDITION(AAbstract_Weapon, PendingReload,	COND_SkipOwner );
-}
+//void AAbstract_Weapon::OnRep_MyPawn()
+//{
+//	
+//}
+//
+//void AAbstract_Weapon::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
+//{
+//	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
+//
+//	DOREPLIFETIME(AAbstract_Weapon, MyPawn );
+//
+//	DOREPLIFETIME_CONDITION(AAbstract_Weapon, CurrentAmmoLeft,		COND_OwnerOnly );
+//	DOREPLIFETIME_CONDITION(AAbstract_Weapon, CurrentAmmoInClip, COND_OwnerOnly );
+//
+//	//DOREPLIFETIME_CONDITION(AAbstarct_Weapon, BurstCounter,		COND_SkipOwner );
+//	DOREPLIFETIME_CONDITION(AAbstract_Weapon, PendingReload,	COND_SkipOwner );
+//}
 
 void AAbstract_Weapon::OnEnterInventory_Implementation(ACharacter* NewOwner)
 {
@@ -415,40 +410,40 @@ void AAbstract_Weapon::OnEnterInventory_Implementation(ACharacter* NewOwner)
 
 void AAbstract_Weapon::SetOwningPawn(ACharacter* NewOwner)
 {
-	if (MyPawn != NewOwner)
-	{
-		Instigator = NewOwner;
-		MyPawn = NewOwner;
-		// net owner for RPC calls
-		SetOwner(NewOwner);
-	}
+	//if (MyPawn != NewOwner)
+	//{
+	//	Instigator = NewOwner;
+	//	MyPawn = NewOwner;
+	//	// net owner for RPC calls
+	//	SetOwner(NewOwner);
+	//}
 }
 
 void AAbstract_Weapon::AttachMeshToPawn_Implementation()
 {
-	if (MyPawn)
-	{
-		// Remove and hide both first and third person meshes
-		DetachMeshFromPawn();
+	//if (MyPawn)
+	//{
+	//	// Remove and hide both first and third person meshes
+	//	DetachMeshFromPawn();
 
-		// TODO : change attachpoint to the one defined in the player blueprint
-		// For locally controller players we attach both weapons and let the bOnlyOwnerSee, bOwnerNoSee flags deal with visibility.
-		//FOutputDeviceNull ar;
-		FName AttachPoint = "hand_r";/*MyPawn->CallFunctionByNameWithArguments(TEXT("GetWeaponAttachPoint"), ar, NULL, true);*/
+	//	// TODO : change attachpoint to the one defined in the player blueprint
+	//	// For locally controller players we attach both weapons and let the bOnlyOwnerSee, bOwnerNoSee flags deal with visibility.
+	//	//FOutputDeviceNull ar;
+	//	FName AttachPoint = "hand_r";/*MyPawn->CallFunctionByNameWithArguments(TEXT("GetWeaponAttachPoint"), ar, NULL, true);*/
 
-		if (MyPawn->IsLocallyControlled() == true)
-		{
-			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetMesh();
-			FP_Gun->SetHiddenInGame(false);
-			FP_Gun->AttachToComponent(PawnMesh1p, FAttachmentTransformRules::KeepRelativeTransform, AttachPoint);
-		}
-		else
-		{
-			USkeletalMeshComponent* UsePawnMesh = MyPawn->GetMesh();
-			FP_Gun->AttachToComponent(UsePawnMesh, FAttachmentTransformRules::KeepRelativeTransform, AttachPoint);
-			FP_Gun->SetHiddenInGame(false);
-		}
-	}
+	//	if (MyPawn->IsLocallyControlled() == true)
+	//	{
+	//		USkeletalMeshComponent* PawnMesh1p = MyPawn->GetMesh();
+	//		FP_Gun->SetHiddenInGame(false);
+	//		FP_Gun->AttachToComponent(PawnMesh1p, FAttachmentTransformRules::KeepRelativeTransform, AttachPoint);
+	//	}
+	//	else
+	//	{
+	//		USkeletalMeshComponent* UsePawnMesh = MyPawn->GetMesh();
+	//		FP_Gun->AttachToComponent(UsePawnMesh, FAttachmentTransformRules::KeepRelativeTransform, AttachPoint);
+	//		FP_Gun->SetHiddenInGame(false);
+	//	}
+	//}
 }
 
 void AAbstract_Weapon::DetachMeshFromPawn()
