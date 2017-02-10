@@ -145,11 +145,11 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopFire();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "MyBPForCPP", Transient, ReplicatedUsing = OnRep_MyPawn)
+	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "MyBPForCPP", Transient, ReplicatedUsing = OnRep_MyPawn)
 		ACharacter* MyPawn;
 
 	UFUNCTION()
-		void OnRep_MyPawn();
+		void OnRep_MyPawn();*/
 
 public:
 	/** set the weapon's owning pawn */
