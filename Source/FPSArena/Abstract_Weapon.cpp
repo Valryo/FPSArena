@@ -147,8 +147,6 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 	
 	if (Projectile)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
-
 		Projectile->Instigator = Instigator;
 		Projectile->SetOwner(this);
 		//Projectile->InitVelocity(ShootDir);
@@ -253,16 +251,6 @@ void AAbstract_Weapon::ReloadWeapon()
 void AAbstract_Weapon::UseAmmo()
 {
 	CurrentAmmoInClip--;
-
-	//if (CurrentAmmoInClip <= 0)
-	//{
-	//	StopFiring();
-	//	
-	//	if (CanReload())
-	//	{
-
-	//	}
-	//}
 }
 
 void AAbstract_Weapon::DetermineWeaponState()
@@ -369,73 +357,6 @@ void AAbstract_Weapon::ServerHandleFiring_Implementation()
 		// update ammo
 		UseAmmo();
 	}
-}
-
-//void AAbstract_Weapon::OnRep_MyPawn()
-//{
-//	
-//}
-//
-//void AAbstract_Weapon::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
-//{
-//	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-//
-//	DOREPLIFETIME(AAbstract_Weapon, MyPawn );
-//
-//	DOREPLIFETIME_CONDITION(AAbstract_Weapon, CurrentAmmoLeft,		COND_OwnerOnly );
-//	DOREPLIFETIME_CONDITION(AAbstract_Weapon, CurrentAmmoInClip, COND_OwnerOnly );
-//
-//	//DOREPLIFETIME_CONDITION(AAbstarct_Weapon, BurstCounter,		COND_SkipOwner );
-//	DOREPLIFETIME_CONDITION(AAbstract_Weapon, PendingReload,	COND_SkipOwner );
-//}
-
-void AAbstract_Weapon::OnEnterInventory_Implementation(ACharacter* NewOwner)
-{
-	SetOwningPawn(NewOwner);
-}
-
-void AAbstract_Weapon::SetOwningPawn(ACharacter* NewOwner)
-{
-	//if (MyPawn != NewOwner)
-	//{
-	//	Instigator = NewOwner;
-	//	MyPawn = NewOwner;
-	//	// net owner for RPC calls
-	//	SetOwner(NewOwner);
-	//}
-}
-
-void AAbstract_Weapon::AttachMeshToPawn_Implementation()
-{
-	//if (MyPawn)
-	//{
-	//	// Remove and hide both first and third person meshes
-	//	DetachMeshFromPawn();
-
-	//	// TODO : change attachpoint to the one defined in the player blueprint
-	//	// For locally controller players we attach both weapons and let the bOnlyOwnerSee, bOwnerNoSee flags deal with visibility.
-	//	//FOutputDeviceNull ar;
-	//	FName AttachPoint = "hand_r";/*MyPawn->CallFunctionByNameWithArguments(TEXT("GetWeaponAttachPoint"), ar, NULL, true);*/
-
-	//	if (MyPawn->IsLocallyControlled() == true)
-	//	{
-	//		USkeletalMeshComponent* PawnMesh1p = MyPawn->GetMesh();
-	//		FP_Gun->SetHiddenInGame(false);
-	//		FP_Gun->AttachToComponent(PawnMesh1p, FAttachmentTransformRules::KeepRelativeTransform, AttachPoint);
-	//	}
-	//	else
-	//	{
-	//		USkeletalMeshComponent* UsePawnMesh = MyPawn->GetMesh();
-	//		FP_Gun->AttachToComponent(UsePawnMesh, FAttachmentTransformRules::KeepRelativeTransform, AttachPoint);
-	//		FP_Gun->SetHiddenInGame(false);
-	//	}
-	//}
-}
-
-void AAbstract_Weapon::DetachMeshFromPawn()
-{
-	FP_Gun->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-	FP_Gun->SetHiddenInGame(true);
 }
 
 FVector AAbstract_Weapon::GetCameraAim() const

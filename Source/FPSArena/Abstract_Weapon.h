@@ -145,12 +145,6 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopFire();
 
-	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "MyBPForCPP", Transient, ReplicatedUsing = OnRep_MyPawn)
-		ACharacter* MyPawn;
-
-	UFUNCTION()
-		void OnRep_MyPawn();*/
-
 public:
 	/** set the weapon's owning pawn */
 	void SetOwningPawn(ACharacter* NewOwner);
@@ -243,17 +237,4 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void FireWeapon();
 
-	/** [server] weapon was added to pawn's inventory */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		void OnEnterInventory(ACharacter* NewOwner);
-
-	//////////////////////////////////////////////////////////////////////////
-	// Inventory
-
-	/** attaches weapon mesh to pawn's mesh */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-	void AttachMeshToPawn();
-
-	/** detaches weapon mesh from pawn */
-	void DetachMeshFromPawn();
 };
