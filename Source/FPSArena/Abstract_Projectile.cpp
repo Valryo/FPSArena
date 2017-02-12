@@ -45,25 +45,12 @@ AAbstract_Projectile::AAbstract_Projectile()
 	CollisionComp->CanCharacterStepUpOn = ECB_No;
 
 	//MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
-
-	//// Use a ProjectileMovementComponent to govern this projectile's movement
-	//ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
-	//ProjectileMovement->UpdatedComponent = CollisionComp;
-	//ProjectileMovement->InitialSpeed = Velocity;
-	//ProjectileMovement->MaxSpeed = Velocity;
-	//ProjectileMovement->bRotationFollowsVelocity = true;
-	//ProjectileMovement->bShouldBounce = false;
-	//ProjectileMovement->ProjectileGravityScale = 0.f;
-
-	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
-	bReplicates = true;
-	bReplicateMovement = true;
 }
 
 void AAbstract_Projectile::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	MovementComp->OnProjectileStop.AddDynamic(this, &AAbstract_Projectile::OnImpact);
+	CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &AAbstract_Projectile::OnImpact);
 	CollisionComp->MoveIgnoreActors.Add(Instigator);
 
 	SetLifeSpan(Lifespan);
@@ -77,17 +64,19 @@ void AAbstract_Projectile::InitVelocity(FVector& ShootDirection)
 	}
 }
 
-void AAbstract_Projectile::OnImpact(const FHitResult& HitResult)
+void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (Role == ROLE_Authority)
 	{
-		DisableAndDestroy();
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Projectile : OnImpact");
+		//DisableAndDestroy();
 	}
 }
 
 void AAbstract_Projectile::DisableAndDestroy()
 {
 	MovementComp->StopMovementImmediately();
+	Destroy();
 }
 //
 //void AAbstract_Projectile::OnHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
