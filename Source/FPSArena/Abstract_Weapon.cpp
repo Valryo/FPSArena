@@ -212,6 +212,8 @@ void AAbstract_Weapon::ServerStopFire_Implementation()
 
 void AAbstract_Weapon::StartReloading_Implementation()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Start reloading");
+
 	if (CanReload())
 	{
 		PendingReload = true;
