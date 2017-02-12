@@ -107,7 +107,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 		UWorld* const World = GetWorld();
 		if (World != NULL)
 		{
-			FVector ShootDir = GetActorRotation().Vector();
+			FVector  ShootDir = GetCameraAim();
 			FVector Origin = FP_MuzzleLocation->GetComponentLocation();
 
 			ServerFireProjectile(Origin, ShootDir);
@@ -135,40 +135,26 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 	//}
 }
 
-bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector_NetQuantizeNormal ShootDir)
+bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector ShootDir)
 {
 	return true;
 }
 
-void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVector_NetQuantizeNormal ShootDir)
+void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVector ShootDir)
 {
+	FTransform SpawnTM(ShootDir.Rotation(), Origin);
+	AAbstract_Projectile* Projectile = Cast<AAbstract_Projectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, SpawnTM));
 	
+	if (Projectile)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
 
-	FRotator SpawnRotation = GetActorRotation();
-	SpawnRotation.Yaw += 90;
-	const FVector SpawnLocation = FP_MuzzleLocation->GetComponentLocation();
+		Projectile->Instigator = Instigator;
+		Projectile->SetOwner(this);
+		//Projectile->InitVelocity(ShootDir);
 
-	//Set Spawn Collision Handling Override
-	FActorSpawnParameters ActorSpawnParams;
-	ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-	// spawn the projectile at the muzzle
-	AAbstract_Projectile* Projectile = GetWorld()->SpawnActor<AAbstract_Projectile>(ProjectileClass, Origin, SpawnRotation, ActorSpawnParams);
-	//Projectile->InitProjectileProperties(this->Damage, this->ProjectileVelocity * 100, this->ProjectileLifeSpan);
-
-	//FTransform SpawnTM(ShootDir.Rotation(), Origin);
-	//AAbstract_Projectile* Projectile = Cast<AAbstract_Projectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, SpawnTM));
-	//
-	//if (Projectile)
-	//{
-	//	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
-
-	//	Projectile->Instigator = Instigator;
-	//	Projectile->SetOwner(this);
-	//	Projectile->InitVelocity(ShootDir);
-
-	//	UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
-	//}
+		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
+	}
 }
 
 bool AAbstract_Weapon::ToggleAim_Implementation()
@@ -450,4 +436,24 @@ void AAbstract_Weapon::DetachMeshFromPawn()
 {
 	FP_Gun->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 	FP_Gun->SetHiddenInGame(true);
+}
+
+FVector AAbstract_Weapon::GetCameraAim() const
+{
+	APlayerController* const PlayerController = Instigator ? Cast<APlayerController>(Instigator->Controller) : NULL;
+	FVector FinalAim = FVector::ZeroVector;
+
+	if (PlayerController)
+	{
+		FVector CamLoc;
+		FRotator CamRot;
+		PlayerController->GetPlayerViewPoint(CamLoc, CamRot);
+		FinalAim = CamRot.Vector();
+	}
+	else if (Instigator)
+	{
+		FinalAim = Instigator->GetBaseAimRotation().Vector();
+	}
+
+	return FinalAim;
 }
