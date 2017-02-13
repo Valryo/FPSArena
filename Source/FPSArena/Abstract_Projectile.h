@@ -17,7 +17,10 @@ public:
 	virtual void PostInitializeComponents() override;
 
 	/** setup velocity */
-	void InitVelocity(FVector& ShootDirection);
+	void InitVelocity(float Speed);
+
+	/** setup ignored actors */
+	void IgnoreActor(AActor* Actor);
 
 	/** handle hit */
 	UFUNCTION()

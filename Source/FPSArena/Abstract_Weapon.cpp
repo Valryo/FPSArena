@@ -93,7 +93,7 @@ bool AAbstract_Weapon::CanFire() const
 
 bool AAbstract_Weapon::CanReload() const
 {
-	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoLeft - CurrentAmmoInClip > 0);
+	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoLeft > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
 	return ((GotAmmo == true) && (StateOKToReload == true));
@@ -149,7 +149,8 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 	{
 		Projectile->Instigator = Instigator;
 		Projectile->SetOwner(this);
-		//Projectile->InitVelocity(ShootDir);
+		Projectile->InitVelocity(ProjectileVelocity * 10);
+		//Projectile->IgnoreActor(this);
 
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
 	}
@@ -212,8 +213,6 @@ void AAbstract_Weapon::ServerStopFire_Implementation()
 
 void AAbstract_Weapon::StartReloading_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Start reloading");
-
 	if (CanReload())
 	{
 		PendingReload = true;

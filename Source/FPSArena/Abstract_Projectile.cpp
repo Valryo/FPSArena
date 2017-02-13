@@ -56,11 +56,13 @@ void AAbstract_Projectile::PostInitializeComponents()
 	SetLifeSpan(Lifespan);
 }
 
-void AAbstract_Projectile::InitVelocity(FVector& ShootDirection)
+void AAbstract_Projectile::InitVelocity(float Speed)
 {
 	if (MovementComp)
 	{
-		MovementComp->Velocity = ShootDirection * MovementComp->InitialSpeed;
+		MovementComp->InitialSpeed = Speed;
+		MovementComp->MaxSpeed = Speed;
+		MovementComp->Velocity *= Speed;
 	}
 }
 
@@ -68,8 +70,22 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 {
 	if (Role == ROLE_Authority)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Projectile : OnImpact");
-		//DisableAndDestroy();
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Projectile : OnImpact " + OtherActor->GetName());
+
+		APlayerController* PlayerController = Cast<APlayerController>(Instigator->GetController());
+		if (PlayerController != nullptr)
+		{
+			if (OtherActor != nullptr)
+			{
+				// Create a damage event  
+				TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
+				FDamageEvent DamageEvent(ValidDamageTypeClass);
+
+				OtherActor->TakeDamage(Damage, DamageEvent, PlayerController, this);
+			}
+		}
+		
+		DisableAndDestroy();
 	}
 }
 
