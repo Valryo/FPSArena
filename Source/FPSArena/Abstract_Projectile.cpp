@@ -56,11 +56,13 @@ void AAbstract_Projectile::PostInitializeComponents()
 	SetLifeSpan(Lifespan);
 }
 
-void AAbstract_Projectile::InitVelocity(FVector& ShootDirection)
+void AAbstract_Projectile::InitVelocity(float Speed)
 {
 	if (MovementComp)
 	{
-		MovementComp->Velocity = ShootDirection * MovementComp->InitialSpeed;
+		MovementComp->InitialSpeed = Speed;
+		MovementComp->MaxSpeed = Speed;
+		MovementComp->Velocity *= Speed;
 	}
 }
 

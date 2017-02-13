@@ -149,7 +149,7 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 	{
 		Projectile->Instigator = Instigator;
 		Projectile->SetOwner(this);
-		//Projectile->InitVelocity(ShootDir);
+		Projectile->InitVelocity(ProjectileVelocity * 10);
 
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
 	}
