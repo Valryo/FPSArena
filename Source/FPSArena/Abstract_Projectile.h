@@ -19,6 +19,9 @@ public:
 	/** setup velocity */
 	void InitVelocity(float Speed);
 
+	/** setup ignored actors */
+	void IgnoreActor(AActor* Actor);
+
 	/** handle hit */
 	UFUNCTION()
 		void OnImpact(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

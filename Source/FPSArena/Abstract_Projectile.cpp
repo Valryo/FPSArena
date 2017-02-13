@@ -70,8 +70,22 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 {
 	if (Role == ROLE_Authority)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Projectile : OnImpact");
-		//DisableAndDestroy();
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Projectile : OnImpact " + OtherActor->GetName());
+
+		APlayerController* PlayerController = Cast<APlayerController>(Instigator->GetController());
+		if (PlayerController != nullptr)
+		{
+			if (OtherActor != nullptr)
+			{
+				// Create a damage event  
+				TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
+				FDamageEvent DamageEvent(ValidDamageTypeClass);
+
+				OtherActor->TakeDamage(Damage, DamageEvent, PlayerController, this);
+			}
+		}
+		
+		DisableAndDestroy();
 	}
 }
 
