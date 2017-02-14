@@ -181,11 +181,11 @@ protected:
 		int MagazineSize;
 	
 	/** amount of bullets left in the magazine */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,replicated, Category = "Magazine")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly,replicated, Category = "Magazine")
 	int CurrentAmmoInClip;
 
 	/** amount of bullet left in the reserve */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,replicated, Category = "Magazine")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly,replicated, Category = "Magazine")
 	int CurrentAmmoLeft;
 	
 	/** Number of ammunition */
