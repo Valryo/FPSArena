@@ -111,8 +111,6 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 			FVector Origin = FP_MuzzleLocation->GetComponentLocation();
 
 			ServerFireProjectile(Origin, ShootDir);
-
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::FromInt(CurrentAmmoInClip) + " - " + FString::FromInt(CurrentAmmoLeft));
 		}
 	}
 
@@ -238,7 +236,6 @@ void AAbstract_Weapon::StopReloading_Implementation()
 
 void AAbstract_Weapon::ReloadWeapon()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "Reloaded");
 	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoLeft);
 
 	if (ClipDelta > 0)
