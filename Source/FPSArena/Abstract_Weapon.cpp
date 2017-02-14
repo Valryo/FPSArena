@@ -142,6 +142,7 @@ bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector Sho
 
 void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVector ShootDir)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
 	FTransform SpawnTM(ShootDir.Rotation(), Origin);
 	AAbstract_Projectile* Projectile = Cast<AAbstract_Projectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, SpawnTM));
 	
@@ -150,7 +151,7 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 		Projectile->Instigator = Instigator;
 		Projectile->SetOwner(this);
 		Projectile->InitVelocity(ProjectileVelocity * 10);
-		//Projectile->IgnoreActor(this);
+		Projectile->InitProjectileProperties(Damage, ProjectileVelocity * 10, ProjectileLifeSpan);
 
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
 	}

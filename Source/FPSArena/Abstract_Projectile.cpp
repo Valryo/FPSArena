@@ -94,22 +94,14 @@ void AAbstract_Projectile::DisableAndDestroy()
 	MovementComp->StopMovementImmediately();
 	Destroy();
 }
-//
-//void AAbstract_Projectile::OnHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-//{
-//	/*GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "On Hit");
-//
-//	Destroy();*/
-//}
-//
-//void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity, float Lifespan)
-//{
-//	this->Damage = Damage;
-//	this->Velocity = Velocity;
-//	this->Lifespan = Lifespan;
-//
-//	ProjectileMovement->InitialSpeed = Velocity;
-//	ProjectileMovement->MaxSpeed = Velocity;
-//
-//	SetLifeSpan(Lifespan);
-//}
+
+void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity, float Lifespan)
+{
+	this->Damage = Damage;
+	this->Velocity = Velocity;
+	this->Lifespan = Lifespan;
+
+	InitVelocity(Velocity);
+
+	SetLifeSpan(Lifespan);
+}

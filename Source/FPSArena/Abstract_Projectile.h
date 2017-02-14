@@ -19,8 +19,8 @@ public:
 	/** setup velocity */
 	void InitVelocity(float Speed);
 
-	/** setup ignored actors */
-	void IgnoreActor(AActor* Actor);
+	/** initialize the projectile properties */
+	void InitProjectileProperties(int32 Damage, float Velocity, float Lifespan);
 
 	/** handle hit */
 	UFUNCTION()
