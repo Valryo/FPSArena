@@ -118,11 +118,7 @@ protected:
 	/** last time the weapon fired */
 	float LastFireTime;
 
-	/** amount of bullets left in the magazine */
-	int CurrentAmmoInClip;
 
-	/** amount of bullet left in the reserve */
-	int CurrentAmmoLeft;
 
 	/** times in second between two consecutive shots */
 	float TimeBetweenShots;
@@ -153,6 +149,7 @@ public:
 
 
 protected:
+
 	/** Damage dealt by the projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		int32 Damage;
@@ -184,6 +181,14 @@ protected:
 	/** Number of rounds in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MagazineSize;
+	
+	/** amount of bullets left in the magazine */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,replicated, Category = "Magazine")
+	int CurrentAmmoInClip;
+
+	/** amount of bullet left in the reserve */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,replicated, Category = "Magazine")
+	int CurrentAmmoLeft;
 	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")

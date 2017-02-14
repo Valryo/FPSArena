@@ -379,3 +379,13 @@ FVector AAbstract_Weapon::GetCameraAim() const
 
 	return FinalAim;
 }
+
+void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+ 
+    // Replicate to everyone
+    DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
+	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
+	
+}
