@@ -291,7 +291,6 @@ void AAbstract_Weapon::ServerStopFire_Implementation()
 
 void AAbstract_Weapon::StartReloading_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Startreloading");
 	if (CanReload())
 	{
 		PendingReload = true;
@@ -480,12 +479,12 @@ FVector AAbstract_Weapon::GetCameraAim() const
 	return FinalAim;
 }
 
-//void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-//{
-//    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-// 
-//    // Replicate to everyone
-//    DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
-//	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
-//	
-//}
+void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+ 
+    // Replicate to everyone
+    DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
+	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
+	
+}
