@@ -145,7 +145,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 		if (World != NULL)
 		{
 			FVector  ShootDir = GetCameraAim();
-			FVector Origin = FP_Gun->GetSocketLocation("MuzzleFlashSocket");
+			FVector Origin = FP_Gun->GetSocketLocation(MuzzleAttachPoint);
 
 			// trace from camera to check what's under crosshair
 			const float ProjectileAdjustRange = 10000.0f;
@@ -153,13 +153,9 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 			const FVector EndTrace = StartTrace + ShootDir * ProjectileAdjustRange;
 			FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, EndTrace.ToString());
-
 			// and adjust directions to hit that actor
 			if (Impact.bBlockingHit)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Blocking hit");
-
 				const FVector AdjustedDir = (Impact.ImpactPoint - Origin).GetSafeNormal();
 				bool bWeaponPenetration = false;
 
@@ -173,10 +169,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				{
 					// check for weapon penetration if angle difference is big enough
 					// raycast along weapon mesh to check if there's blocking hit
-
-					
-
-					FVector MuzzleStartTrace = Origin - FP_Gun->GetSocketRotation("MuzzleFlashSocket").Vector() * 150.0f;
+					FVector MuzzleStartTrace = Origin - FP_Gun->GetSocketRotation(MuzzleAttachPoint).Vector() * 150.0f;
 					FVector MuzzleEndTrace = Origin;
 					FHitResult MuzzleImpact = WeaponTrace(MuzzleStartTrace, MuzzleEndTrace);
 
@@ -298,6 +291,7 @@ void AAbstract_Weapon::ServerStopFire_Implementation()
 
 void AAbstract_Weapon::StartReloading_Implementation()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Startreloading");
 	if (CanReload())
 	{
 		PendingReload = true;
@@ -391,36 +385,58 @@ void AAbstract_Weapon::OnBurstFinished()
 
 void AAbstract_Weapon::HandleFiring()
 {
-	// local client will notify server
-	if (Role < ROLE_Authority)
-	{
-		ServerHandleFiring();
-	}
+	APawn* MyPawn = Cast<APawn>(GetOwner());
 
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
-		FireWeapon();
-		UseAmmo();
+		if (MyPawn && MyPawn->IsLocallyControlled())
+		{
+			FireWeapon();
+			UseAmmo();
+		}
 	}
-
-	// Out of ammo and still shooting
-	if (CurrentAmmoLeft == 0 && !Refiring)
-	{
-		// Play a sound
-	}
-
-	// reload after firing last round
-	if (CurrentAmmoInClip <= 0 && CanReload())
+	else if (CanReload())
 	{
 		StartReloading();
 	}
-
-	// setup refire timer
-	Refiring = (CurrentState == EWeapon::Firing && WeaponClass == WeaponClass::WC_Auto);
-
-	if (Refiring)
+	else if (MyPawn && MyPawn->IsLocallyControlled())
 	{
-		GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::HandleFiring, TimeBetweenShots, false);
+		if (CurrentAmmoInClip == 0  && CurrentAmmoLeft == 0 && !Refiring)
+		{
+			// Play out of ammo sound
+			/*PlayWeaponSound(OutOfAmmoSound);
+			AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(MyPawn->Controller);
+			AShooterHUD* MyHUD = MyPC ? Cast<AShooterHUD>(MyPC->GetHUD()) : NULL;
+			if (MyHUD)
+			{
+				MyHUD->NotifyOutOfAmmo();
+			}*/
+		}
+
+		// stop weapon fire FX, but stay in Firing state
+		OnBurstFinished();
+	}
+
+	if (MyPawn && MyPawn->IsLocallyControlled())
+	{
+		// local client will notify server
+		if (Role < ROLE_Authority)
+		{
+			ServerHandleFiring();
+		}
+
+		// reload after firing last round
+		if (CurrentAmmoInClip <= 0 && CanReload())
+		{
+			StartReloading();
+		}
+
+		// setup refire timer
+		Refiring = (CurrentState == EWeapon::Firing && WeaponClass == WeaponClass::WC_Auto);
+		if (Refiring)
+		{
+			GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::HandleFiring, TimeBetweenShots, false);
+		}
 	}
 
 	LastFireTime = GetWorld()->GetTimeSeconds();
@@ -464,12 +480,12 @@ FVector AAbstract_Weapon::GetCameraAim() const
 	return FinalAim;
 }
 
-void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
- 
-    // Replicate to everyone
-    DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
-	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
-	
-}
+//void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+//{
+//    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+// 
+//    // Replicate to everyone
+//    DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
+//	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
+//	
+//}
