@@ -44,7 +44,7 @@ class FPSARENA_API AAbstract_Weapon : public AActor
 
 	/** Location on gun mesh where projectiles should spawn. */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USceneComponent* FP_MuzzleLocation;
+		class USkeletalMeshComponent* FP_SightSocket;
 
 public:	
 	// Sets default values for this actor's properties
@@ -54,9 +54,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		TSubclassOf<class AAbstract_Projectile> ProjectileClass;
 
-	/** Sound to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		class USoundBase* FireSound;
+	
 
 protected:
 	// Called when the game starts or when spawned
@@ -118,22 +116,20 @@ protected:
 	/** last time the weapon fired */
 	float LastFireTime;
 
-	/** amount of bullets left in the magazine */
-	int CurrentAmmoInClip;
 
-	/** amount of bullet left in the reserve */
-	int CurrentAmmoLeft;
 
 	/** times in second between two consecutive shots */
 	float TimeBetweenShots;
 
+	FVector GetCameraDamageStartLocation(const FVector& AimDir) const;
+	FHitResult WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const;
 
 	/** spawn projectile on server */
 	UFUNCTION(reliable, server, WithValidation)
-		void ServerFireProjectile(FVector Origin, FVector_NetQuantizeNormal ShootDir);
+		void ServerFireProjectile(FVector Origin, FVector ShootDir);
 
 
-	
+	FVector GetCameraAim() const;
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -145,12 +141,6 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopFire();
 
-	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "MyBPForCPP", Transient, ReplicatedUsing = OnRep_MyPawn)
-		ACharacter* MyPawn;
-
-	UFUNCTION()
-		void OnRep_MyPawn();*/
-
 public:
 	/** set the weapon's owning pawn */
 	void SetOwningPawn(ACharacter* NewOwner);
@@ -159,6 +149,7 @@ public:
 
 
 protected:
+
 	/** Damage dealt by the projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		int32 Damage;
@@ -191,6 +182,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MagazineSize;
 	
+	/** amount of bullets left in the magazine */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,replicated, Category = "Magazine")
+	int CurrentAmmoInClip;
+
+	/** amount of bullet left in the reserve */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,replicated, Category = "Magazine")
+	int CurrentAmmoLeft;
+	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MaxAmmo;
@@ -222,8 +221,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float AccuracyJumping;
 
+	/** Sound to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
+		class USoundBase* FireSound;
 
-	public :
+	/** Sound to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
+		class USoundBase* EmptyMagSound;
+
+	/** Sound to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
+		class USoundBase* ReloadSound;
+
+public :
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void StartFiring();
 
@@ -243,17 +253,4 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void FireWeapon();
 
-	/** [server] weapon was added to pawn's inventory */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		void OnEnterInventory(ACharacter* NewOwner);
-
-	//////////////////////////////////////////////////////////////////////////
-	// Inventory
-
-	/** attaches weapon mesh to pawn's mesh */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-	void AttachMeshToPawn();
-
-	/** detaches weapon mesh from pawn */
-	void DetachMeshFromPawn();
 };

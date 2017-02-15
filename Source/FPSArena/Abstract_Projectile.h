@@ -17,11 +17,14 @@ public:
 	virtual void PostInitializeComponents() override;
 
 	/** setup velocity */
-	void InitVelocity(FVector& ShootDirection);
+	void InitVelocity(float Speed);
+
+	/** initialize the projectile properties */
+	void InitProjectileProperties(int32 Damage, float Velocity, float Lifespan);
 
 	/** handle hit */
 	UFUNCTION()
-		void OnImpact(const FHitResult& HitResult);
+		void OnImpact(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 private:
 	/** movement component */

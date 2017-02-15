@@ -45,42 +45,46 @@ AAbstract_Projectile::AAbstract_Projectile()
 	CollisionComp->CanCharacterStepUpOn = ECB_No;
 
 	//MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
-
-	//// Use a ProjectileMovementComponent to govern this projectile's movement
-	//ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
-	//ProjectileMovement->UpdatedComponent = CollisionComp;
-	//ProjectileMovement->InitialSpeed = Velocity;
-	//ProjectileMovement->MaxSpeed = Velocity;
-	//ProjectileMovement->bRotationFollowsVelocity = true;
-	//ProjectileMovement->bShouldBounce = false;
-	//ProjectileMovement->ProjectileGravityScale = 0.f;
-
-	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
-	bReplicates = true;
-	bReplicateMovement = true;
 }
 
 void AAbstract_Projectile::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	MovementComp->OnProjectileStop.AddDynamic(this, &AAbstract_Projectile::OnImpact);
+	CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &AAbstract_Projectile::OnImpact);
 	CollisionComp->MoveIgnoreActors.Add(Instigator);
 
 	SetLifeSpan(Lifespan);
 }
 
-void AAbstract_Projectile::InitVelocity(FVector& ShootDirection)
+void AAbstract_Projectile::InitVelocity(float Speed)
 {
 	if (MovementComp)
 	{
-		MovementComp->Velocity = ShootDirection * MovementComp->InitialSpeed;
+		MovementComp->InitialSpeed = Speed;
+		MovementComp->MaxSpeed = Speed;
+		MovementComp->Velocity *= Speed;
 	}
 }
 
-void AAbstract_Projectile::OnImpact(const FHitResult& HitResult)
+void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (Role == ROLE_Authority)
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Projectile : OnImpact " + OtherActor->GetName());
+
+		APlayerController* PlayerController = Cast<APlayerController>(Instigator->GetController());
+		if (PlayerController != nullptr)
+		{
+			if (OtherActor != nullptr)
+			{
+				// Create a damage event  
+				TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
+				FDamageEvent DamageEvent(ValidDamageTypeClass);
+
+				OtherActor->TakeDamage(Damage, DamageEvent, PlayerController, this);
+			}
+		}
+		
 		DisableAndDestroy();
 	}
 }
@@ -88,23 +92,16 @@ void AAbstract_Projectile::OnImpact(const FHitResult& HitResult)
 void AAbstract_Projectile::DisableAndDestroy()
 {
 	MovementComp->StopMovementImmediately();
+	Destroy();
 }
-//
-//void AAbstract_Projectile::OnHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-//{
-//	/*GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "On Hit");
-//
-//	Destroy();*/
-//}
-//
-//void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity, float Lifespan)
-//{
-//	this->Damage = Damage;
-//	this->Velocity = Velocity;
-//	this->Lifespan = Lifespan;
-//
-//	ProjectileMovement->InitialSpeed = Velocity;
-//	ProjectileMovement->MaxSpeed = Velocity;
-//
-//	SetLifeSpan(Lifespan);
-//}
+
+void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity, float Lifespan)
+{
+	this->Damage = Damage;
+	this->Velocity = Velocity;
+	this->Lifespan = Lifespan;
+
+	InitVelocity(Velocity);
+
+	SetLifeSpan(Lifespan);
+}
