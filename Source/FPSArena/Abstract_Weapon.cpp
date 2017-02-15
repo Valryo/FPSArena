@@ -131,7 +131,7 @@ FHitResult AAbstract_Weapon::WeaponTrace(const FVector& StartTrace, const FVecto
 	TraceParams.bReturnPhysicalMaterial = true;
 
 	FHitResult Hit(ForceInit);
-	GetWorld()->LineTraceSingleByChannel(Hit, StartTrace, EndTrace, COLLISION_WEAPON, TraceParams);
+	GetWorld()->LineTraceSingleByChannel(Hit, StartTrace, EndTrace, ECC_Pawn, TraceParams);
 
 	return Hit;
 }
@@ -153,9 +153,13 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 			const FVector EndTrace = StartTrace + ShootDir * ProjectileAdjustRange;
 			FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, EndTrace.ToString());
+
 			// and adjust directions to hit that actor
 			if (Impact.bBlockingHit)
 			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Blocking hit");
+
 				const FVector AdjustedDir = (Impact.ImpactPoint - Origin).GetSafeNormal();
 				bool bWeaponPenetration = false;
 
@@ -170,7 +174,9 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 					// check for weapon penetration if angle difference is big enough
 					// raycast along weapon mesh to check if there's blocking hit
 
-					FVector MuzzleStartTrace = Origin - GetMuzzleDirection() * 150.0f;
+					
+
+					FVector MuzzleStartTrace = Origin - FP_Gun->GetSocketRotation("MuzzleFlashSocket").Vector() * 150.0f;
 					FVector MuzzleEndTrace = Origin;
 					FHitResult MuzzleImpact = WeaponTrace(MuzzleStartTrace, MuzzleEndTrace);
 
@@ -221,7 +227,6 @@ bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector Sho
 
 void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVector ShootDir)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
 	FTransform SpawnTM(ShootDir.Rotation(), Origin);
 	AAbstract_Projectile* Projectile = Cast<AAbstract_Projectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, SpawnTM));
 	
