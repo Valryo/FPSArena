@@ -44,7 +44,7 @@ class FPSARENA_API AAbstract_Weapon : public AActor
 
 	/** Location on gun mesh where projectiles should spawn. */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USceneComponent* FP_MuzzleLocation;
+		class USkeletalMeshComponent* FP_SightSocket;
 
 public:	
 	// Sets default values for this actor's properties
@@ -121,6 +121,8 @@ protected:
 	/** times in second between two consecutive shots */
 	float TimeBetweenShots;
 
+	FVector GetCameraDamageStartLocation(const FVector& AimDir) const;
+	FHitResult WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const;
 
 	/** spawn projectile on server */
 	UFUNCTION(reliable, server, WithValidation)
@@ -181,11 +183,11 @@ protected:
 		int MagazineSize;
 	
 	/** amount of bullets left in the magazine */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly,replicated, Category = "Magazine")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,replicated, Category = "Magazine")
 	int CurrentAmmoInClip;
 
 	/** amount of bullet left in the reserve */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly,replicated, Category = "Magazine")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,replicated, Category = "Magazine")
 	int CurrentAmmoLeft;
 	
 	/** Number of ammunition */
