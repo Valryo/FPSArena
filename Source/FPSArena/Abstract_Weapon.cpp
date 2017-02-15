@@ -15,14 +15,17 @@ AAbstract_Weapon::AAbstract_Weapon()
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
 	FP_Gun->SetOnlyOwnerSee(false);
-	FP_Gun->bCastDynamicShadow = false;
-	FP_Gun->CastShadow = false;
+	FP_Gun->bCastDynamicShadow = true;
+	FP_Gun->CastShadow = true;
 	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
 	FP_Gun->SetupAttachment(RootComponent);
 
-	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
-	FP_MuzzleLocation->SetupAttachment(FP_Gun);
-	FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
+
+	FP_SightSocket = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Sight"));
+	FP_Gun->SetOnlyOwnerSee(false);
+	FP_Gun->bCastDynamicShadow = false;
+	FP_Gun->CastShadow = false;
+	FP_SightSocket->SetupAttachment(FP_Gun);
 
 	AimingDownSight = false;
 	PendingReload = false;
@@ -99,6 +102,40 @@ bool AAbstract_Weapon::CanReload() const
 	return ((GotAmmo == true) && (StateOKToReload == true));
 }
 
+FVector AAbstract_Weapon::GetCameraDamageStartLocation(const FVector& AimDir) const
+{
+	APlayerController* PC = Instigator ? Cast<APlayerController>(Instigator->Controller) : NULL;
+	
+	FVector OutStartTrace = FVector::ZeroVector;
+
+	if (PC)
+	{
+		// use player's camera
+		FRotator UnusedRot;
+		PC->GetPlayerViewPoint(OutStartTrace, UnusedRot);
+
+		// Adjust trace so there is nothing blocking the ray between the camera and the pawn, and calculate distance from adjusted start
+		OutStartTrace = OutStartTrace + AimDir * ((Instigator->GetActorLocation() - OutStartTrace) | AimDir);
+	}
+
+	return OutStartTrace;
+}
+
+FHitResult AAbstract_Weapon::WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const
+{
+	static FName WeaponFireTag = FName(TEXT("WeaponTrace"));
+
+	// Perform trace to retrieve hit info
+	FCollisionQueryParams TraceParams(WeaponFireTag, true, Instigator);
+	TraceParams.bTraceAsyncScene = true;
+	TraceParams.bReturnPhysicalMaterial = true;
+
+	FHitResult Hit(ForceInit);
+	GetWorld()->LineTraceSingleByChannel(Hit, StartTrace, EndTrace, ECC_Pawn, TraceParams);
+
+	return Hit;
+}
+
 void AAbstract_Weapon::FireWeapon_Implementation()
 {
 	// try and fire a projectile
@@ -108,11 +145,52 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 		if (World != NULL)
 		{
 			FVector  ShootDir = GetCameraAim();
-			FVector Origin = FP_MuzzleLocation->GetComponentLocation();
+			FVector Origin = FP_Gun->GetSocketLocation(MuzzleAttachPoint);
 
+			// trace from camera to check what's under crosshair
+			const float ProjectileAdjustRange = 10000.0f;
+			const FVector StartTrace = GetCameraDamageStartLocation(ShootDir);
+			const FVector EndTrace = StartTrace + ShootDir * ProjectileAdjustRange;
+			FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
+
+			// and adjust directions to hit that actor
+			if (Impact.bBlockingHit)
+			{
+				const FVector AdjustedDir = (Impact.ImpactPoint - Origin).GetSafeNormal();
+				bool bWeaponPenetration = false;
+
+				const float DirectionDot = FVector::DotProduct(AdjustedDir, ShootDir);
+				if (DirectionDot < 0.0f)
+				{
+					// shooting backwards = weapon is penetrating
+					bWeaponPenetration = true;
+				}
+				else if (DirectionDot < 0.5f)
+				{
+					// check for weapon penetration if angle difference is big enough
+					// raycast along weapon mesh to check if there's blocking hit
+					FVector MuzzleStartTrace = Origin - FP_Gun->GetSocketRotation(MuzzleAttachPoint).Vector() * 150.0f;
+					FVector MuzzleEndTrace = Origin;
+					FHitResult MuzzleImpact = WeaponTrace(MuzzleStartTrace, MuzzleEndTrace);
+
+					if (MuzzleImpact.bBlockingHit)
+					{
+						bWeaponPenetration = true;
+					}
+				}
+
+				if (bWeaponPenetration)
+				{
+					// spawn at crosshair position
+					Origin = Impact.ImpactPoint - ShootDir * 10.0f;
+				}
+				else
+				{
+					// adjust direction to hit
+					ShootDir = AdjustedDir;
+				}
+			}
 			ServerFireProjectile(Origin, ShootDir);
-
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::FromInt(CurrentAmmoInClip) + " - " + FString::FromInt(CurrentAmmoLeft));
 		}
 	}
 
@@ -142,7 +220,6 @@ bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector Sho
 
 void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVector ShootDir)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Server fire projectile");
 	FTransform SpawnTM(ShootDir.Rotation(), Origin);
 	AAbstract_Projectile* Projectile = Cast<AAbstract_Projectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, SpawnTM));
 	
@@ -238,7 +315,6 @@ void AAbstract_Weapon::StopReloading_Implementation()
 
 void AAbstract_Weapon::ReloadWeapon()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "Reloaded");
 	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoLeft);
 
 	if (ClipDelta > 0)
@@ -308,36 +384,58 @@ void AAbstract_Weapon::OnBurstFinished()
 
 void AAbstract_Weapon::HandleFiring()
 {
-	// local client will notify server
-	if (Role == ROLE_SimulatedProxy)
-	{
-		ServerHandleFiring();
-	}
+	APawn* MyPawn = Cast<APawn>(GetOwner());
 
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
-		FireWeapon();
-		UseAmmo();
+		if (MyPawn && MyPawn->IsLocallyControlled())
+		{
+			FireWeapon();
+			UseAmmo();
+		}
 	}
-
-	// Out of ammo and still shooting
-	if (CurrentAmmoLeft == 0 && !Refiring)
-	{
-		// Play a sound
-	}
-
-	// reload after firing last round
-	if (CurrentAmmoInClip <= 0 && CanReload())
+	else if (CanReload())
 	{
 		StartReloading();
 	}
-
-	// setup refire timer
-	Refiring = (CurrentState == EWeapon::Firing && WeaponClass == WeaponClass::WC_Auto);
-
-	if (Refiring)
+	else if (MyPawn && MyPawn->IsLocallyControlled())
 	{
-		GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::HandleFiring, TimeBetweenShots, false);
+		if (CurrentAmmoInClip == 0  && CurrentAmmoLeft == 0 && !Refiring)
+		{
+			// Play out of ammo sound
+			/*PlayWeaponSound(OutOfAmmoSound);
+			AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(MyPawn->Controller);
+			AShooterHUD* MyHUD = MyPC ? Cast<AShooterHUD>(MyPC->GetHUD()) : NULL;
+			if (MyHUD)
+			{
+				MyHUD->NotifyOutOfAmmo();
+			}*/
+		}
+
+		// stop weapon fire FX, but stay in Firing state
+		OnBurstFinished();
+	}
+
+	if (MyPawn && MyPawn->IsLocallyControlled())
+	{
+		// local client will notify server
+		if (Role < ROLE_Authority)
+		{
+			ServerHandleFiring();
+		}
+
+		// reload after firing last round
+		if (CurrentAmmoInClip <= 0 && CanReload())
+		{
+			StartReloading();
+		}
+
+		// setup refire timer
+		Refiring = (CurrentState == EWeapon::Firing && WeaponClass == WeaponClass::WC_Auto);
+		if (Refiring)
+		{
+			GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::HandleFiring, TimeBetweenShots, false);
+		}
 	}
 
 	LastFireTime = GetWorld()->GetTimeSeconds();
