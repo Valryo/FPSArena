@@ -291,6 +291,11 @@ void AAbstract_Weapon::ServerStopFire_Implementation()
 
 void AAbstract_Weapon::StartReloading_Implementation()
 {
+	if (Role < ROLE_Authority)
+	{
+		ServerStartReload();
+	}
+
 	if (CanReload())
 	{
 		PendingReload = true;
@@ -312,6 +317,25 @@ void AAbstract_Weapon::StopReloading_Implementation()
 	}
 }
 
+bool AAbstract_Weapon::ServerStartReload_Validate()
+{
+	return true;
+}
+
+void AAbstract_Weapon::ServerStartReload_Implementation()
+{
+	StartReloading();
+}
+
+bool AAbstract_Weapon::ServerStopReload_Validate()
+{
+	return true;
+}
+
+void AAbstract_Weapon::ServerStopReload_Implementation()
+{
+	StopReloading();
+}
 
 void AAbstract_Weapon::ReloadWeapon()
 {

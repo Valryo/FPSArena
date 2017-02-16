@@ -143,6 +143,12 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopFire();
 
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerStartReload();
+
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerStopReload();
+
 public:
 	/** set the weapon's owning pawn */
 	void SetOwningPawn(ACharacter* NewOwner);
