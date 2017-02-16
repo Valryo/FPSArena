@@ -60,9 +60,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	/** pawn owner */
-	UPROPERTY(Transient)
-		class ACharacter* MyPawn;
 
 	bool AimingDownSight;
 	bool PendingReload;

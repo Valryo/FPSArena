@@ -58,8 +58,6 @@ void AAbstract_Weapon::BeginPlay()
 	CurrentAmmoLeft = MaxAmmo;
 
 	TimeBetweenShots = 1.f / (FireRate / 60.f);
-
-	MyPawn = Cast<ACharacter>(GetOwner());
 }
 
 void AAbstract_Weapon::SetWeaponState(EWeapon::State NewState)
@@ -295,6 +293,8 @@ void AAbstract_Weapon::StartReloading_Implementation()
 
 	if (CanReload())
 	{
+		APawn* MyPawn = Cast<APawn>(GetOwner());
+
 		PendingReload = true;
 		DetermineWeaponState();
 
@@ -414,6 +414,10 @@ void AAbstract_Weapon::OnBurstFinished()
 
 void AAbstract_Weapon::HandleFiring()
 {
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "HandleFiring");
+
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
 		if (MyPawn && MyPawn->IsLocallyControlled())
@@ -514,6 +518,8 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
 UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
 {
 	UAudioComponent* AC = NULL;
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+
 	if (Sound && MyPawn)
 	{
 		AC = UGameplayStatics::SpawnSoundAttached(Sound, MyPawn->GetRootComponent());
