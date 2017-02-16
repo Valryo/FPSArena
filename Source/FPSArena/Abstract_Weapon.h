@@ -138,6 +138,9 @@ protected:
 
 	int BurstCounter = 0;
 
+	/** current spread from continuous firing */
+	float CurrentFiringSpread = 0.f;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input - server side
@@ -219,7 +222,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MaxAmmo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
+	/** base weapon spread (degrees) */
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		float WeaponSpread;
+
+	/** continuous firing: spread increment */
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		float FiringSpreadIncrement;
+
+	/** continuous firing: max increment */
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		float FiringSpreadMax;
+
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float VerticalRecoil;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
@@ -244,7 +259,7 @@ protected:
 		float AccuracyCrouchWalking;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float AccuracyJumping;
+		float AccuracyJumping;*/
 
 
 	//////////////////////////////////////////////////////////////////////////

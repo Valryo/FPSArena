@@ -49,6 +49,10 @@ AAbstract_Weapon::AAbstract_Weapon()
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
 	bReplicates = true;
 	bNetUseOwnerRelevancy = true;
+
+	WeaponSpread = 5.f;
+	FiringSpreadIncrement = 1.f;
+	FiringSpreadMax = 10.f;
 }
 
 void AAbstract_Weapon::BeginPlay()
@@ -140,6 +144,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 		if (World != NULL)
 		{
 			FVector  ShootDir = GetCameraAim();
+			
 			FVector Origin = FP_Gun->GetSocketLocation(MuzzleAttachPoint);
 
 			// trace from camera to check what's under crosshair
@@ -186,6 +191,14 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				}
 			}
 			
+			// Spread
+			const int32 RandomSeed = FMath::Rand();
+			FRandomStream WeaponRandomStream(RandomSeed);
+			const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
+
+			const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
+			CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
+
 			BurstCounter++;
 
 			if (BurstCounter == NumberBurstShot && WeaponClass == WeaponClass::WC_Burst)
@@ -194,7 +207,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				StopFiring();
 			}
 
-			ServerFireProjectile(Origin, ShootDir);
+			ServerFireProjectile(Origin, AimDir);
 		}
 	}
 
@@ -423,6 +436,7 @@ void AAbstract_Weapon::OnBurstFinished()
 	GetWorldTimerManager().ClearTimer(RefireTimerHandle);
 	Refiring = false;
 	BurstCounter = 0;
+	CurrentFiringSpread = 0.f;
 }
 
 void AAbstract_Weapon::HandleFiring()
