@@ -56,11 +56,13 @@ void AAbstract_Projectile::PostInitializeComponents()
 	SetLifeSpan(Lifespan);
 }
 
-void AAbstract_Projectile::InitVelocity(FVector& ShootDirection)
+void AAbstract_Projectile::InitVelocity(float Speed)
 {
 	if (MovementComp)
 	{
-		MovementComp->Velocity = ShootDirection * MovementComp->InitialSpeed;
+		MovementComp->InitialSpeed = Speed;
+		MovementComp->MaxSpeed = Speed;
+		MovementComp->Velocity *= Speed;
 	}
 }
 
@@ -68,8 +70,20 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 {
 	if (Role == ROLE_Authority)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Projectile : OnImpact");
-		//DisableAndDestroy();
+		APlayerController* PlayerController = Cast<APlayerController>(Instigator->GetController());
+		if (PlayerController != nullptr)
+		{
+			if (OtherActor != nullptr)
+			{
+				// Create a damage event  
+				TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
+				FDamageEvent DamageEvent(ValidDamageTypeClass);
+
+				OtherActor->TakeDamage(Damage, DamageEvent, PlayerController, this);
+			}
+		}
+		
+		DisableAndDestroy();
 	}
 }
 
@@ -78,22 +92,14 @@ void AAbstract_Projectile::DisableAndDestroy()
 	MovementComp->StopMovementImmediately();
 	Destroy();
 }
-//
-//void AAbstract_Projectile::OnHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-//{
-//	/*GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, "On Hit");
-//
-//	Destroy();*/
-//}
-//
-//void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity, float Lifespan)
-//{
-//	this->Damage = Damage;
-//	this->Velocity = Velocity;
-//	this->Lifespan = Lifespan;
-//
-//	ProjectileMovement->InitialSpeed = Velocity;
-//	ProjectileMovement->MaxSpeed = Velocity;
-//
-//	SetLifeSpan(Lifespan);
-//}
+
+void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity, float Lifespan)
+{
+	this->Damage = Damage;
+	this->Velocity = Velocity;
+	this->Lifespan = Lifespan;
+
+	InitVelocity(Velocity);
+
+	SetLifeSpan(Lifespan);
+}

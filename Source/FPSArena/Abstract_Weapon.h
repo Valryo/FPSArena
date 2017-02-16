@@ -44,7 +44,7 @@ class FPSARENA_API AAbstract_Weapon : public AActor
 
 	/** Location on gun mesh where projectiles should spawn. */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USceneComponent* FP_MuzzleLocation;
+		class USkeletalMeshComponent* FP_SightSocket;
 
 public:	
 	// Sets default values for this actor's properties
@@ -54,13 +54,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		TSubclassOf<class AAbstract_Projectile> ProjectileClass;
 
-	/** Sound to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		class USoundBase* FireSound;
+	
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	/** pawn owner */
+	UPROPERTY(Transient)
+		class ACharacter* MyPawn;
 
 	bool AimingDownSight;
 	bool PendingReload;
@@ -118,22 +120,23 @@ protected:
 	/** last time the weapon fired */
 	float LastFireTime;
 
-	/** amount of bullets left in the magazine */
-	int CurrentAmmoInClip;
-
-	/** amount of bullet left in the reserve */
-	int CurrentAmmoLeft;
+	/** name of bone/socket for muzzle in weapon mesh */
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+		FName MuzzleAttachPoint;
 
 	/** times in second between two consecutive shots */
 	float TimeBetweenShots;
 
+	FVector GetCameraDamageStartLocation(const FVector& AimDir) const;
+	FHitResult WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const;
 
-	/** spawn projectile on server */
-	UFUNCTION(reliable, server, WithValidation)
-		void ServerFireProjectile(FVector Origin, FVector ShootDir);
+	/** play weapon sounds */
+	UAudioComponent* PlayWeaponSound(USoundCue* Sound);
 
 
 	FVector GetCameraAim() const;
+
+	float GetReloadDuration();
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -145,6 +148,16 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopFire();
 
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerStartReload();
+
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerStopReload();
+
+	/** spawn projectile on server */
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerFireProjectile(FVector Origin, FVector ShootDir);
+
 public:
 	/** set the weapon's owning pawn */
 	void SetOwningPawn(ACharacter* NewOwner);
@@ -153,6 +166,7 @@ public:
 
 
 protected:
+
 	/** Damage dealt by the projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		int32 Damage;
@@ -184,6 +198,14 @@ protected:
 	/** Number of rounds in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MagazineSize;
+	
+	/** amount of bullets left in the magazine */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
+	int CurrentAmmoInClip;
+
+	/** amount of bullet left in the reserve */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
+	int CurrentAmmoLeft;
 	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
@@ -217,7 +239,38 @@ protected:
 		float AccuracyJumping;
 
 
-	public :
+	//////////////////////////////////////////////////////////////////////////
+	// -===- Sound effect -===-
+
+	/** firing audio (bLoopedFireSound set) */
+	UPROPERTY(Transient)
+		UAudioComponent* FireAC;
+
+	/** Sound to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
+		USoundCue* FireSound;
+
+	/** looped fire sound (bLoopedFireSound set) */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* FireLoopSound;
+
+	/** finished burst sound (bLoopedFireSound set) */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* FireFinishSound;
+
+	/** out of ammo sound */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* OutOfAmmoSound;
+
+	/** reload sound */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* ReloadSound;
+
+	/** is fire sound looped? */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		bool LoopedFireSound = true;
+
+public :
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void StartFiring();
 
