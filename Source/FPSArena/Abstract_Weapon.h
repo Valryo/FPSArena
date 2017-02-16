@@ -67,6 +67,7 @@ protected:
 	bool PendingEquip;
 	bool WantsToFire;
 	bool Refiring;
+	bool Bursting;
 
 	/** current weapon state */
 	EWeapon::State CurrentState;
@@ -135,6 +136,8 @@ protected:
 
 	float GetReloadDuration();
 
+	int BurstCounter = 0;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input - server side
@@ -172,6 +175,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		float FireRate;
 	
+	/** Time between two consecutive shot while burst firing */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+		float TimeBetweenShotBurstFire;
+
+	/** Time between two consecutive shot while burst firing */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+		float NumberBurstShot;
+
 	/** Projectile velocity in meters per second */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		float ProjectileVelocity;

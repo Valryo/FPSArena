@@ -33,6 +33,7 @@ AAbstract_Weapon::AAbstract_Weapon()
 	PendingEquip = false;
 	WantsToFire = false;
 	Refiring = false;
+	Bursting = false;
 
 	CurrentState = EWeapon::Idle;
 	WeaponClass = WeaponClass::WC_Auto;
@@ -185,6 +186,14 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				}
 			}
 			
+			BurstCounter++;
+
+			if (BurstCounter == NumberBurstShot && WeaponClass == WeaponClass::WC_Burst)
+			{
+				Bursting = false;
+				StopFiring();
+			}
+
 			ServerFireProjectile(Origin, ShootDir);
 		}
 	}
@@ -252,15 +261,18 @@ void AAbstract_Weapon::StartFiring_Implementation()
 
 void AAbstract_Weapon::StopFiring_Implementation()
 {
-	if (Role < ROLE_Authority)
+	if (!Bursting)
 	{
-		ServerStopFire();
-	}
+		if (Role < ROLE_Authority)
+		{
+			ServerStopFire();
+		}
 
-	if (WantsToFire)
-	{
-		WantsToFire = false;
-		DetermineWeaponState();
+		if (WantsToFire)
+		{
+			WantsToFire = false;
+			DetermineWeaponState();
+		}
 	}
 }
 
@@ -410,6 +422,7 @@ void AAbstract_Weapon::OnBurstFinished()
 {
 	GetWorldTimerManager().ClearTimer(RefireTimerHandle);
 	Refiring = false;
+	BurstCounter = 0;
 }
 
 void AAbstract_Weapon::HandleFiring()
@@ -456,11 +469,26 @@ void AAbstract_Weapon::HandleFiring()
 			StartReloading();
 		}
 
-		// setup refire timer
-		Refiring = (CurrentState == EWeapon::Firing && WeaponClass == WeaponClass::WC_Auto);
+		float RefireTime = 0;
+		switch (WeaponClass)
+		{
+		case WeaponClass::WC_Auto:
+			Refiring = CurrentState == EWeapon::Firing;
+			RefireTime = TimeBetweenShots;
+			break;
+		case WeaponClass::WC_Burst:
+			Refiring = CurrentState == EWeapon::Firing && BurstCounter < NumberBurstShot;
+			RefireTime = TimeBetweenShotBurstFire;
+			Bursting = true;
+			break;
+		case WeaponClass::WC_SemiAuto:
+			Refiring = false;
+			break;
+		}
+
 		if (Refiring)
 		{
-			GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::HandleFiring, TimeBetweenShots, false);
+			GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::HandleFiring, RefireTime, false);
 		}
 	}
 
