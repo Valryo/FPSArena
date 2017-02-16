@@ -17,7 +17,10 @@ public:
 	virtual void PostInitializeComponents() override;
 
 	/** setup velocity */
-	void InitVelocity(FVector& ShootDirection);
+	void InitVelocity(float Speed);
+
+	/** initialize the projectile properties */
+	void InitProjectileProperties(int32 Damage, float Velocity, float Lifespan);
 
 	/** handle hit */
 	UFUNCTION()
