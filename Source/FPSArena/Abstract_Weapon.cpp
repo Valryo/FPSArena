@@ -58,6 +58,8 @@ void AAbstract_Weapon::BeginPlay()
 	CurrentAmmoLeft = MaxAmmo;
 
 	TimeBetweenShots = 1.f / (FireRate / 60.f);
+
+	MyPawn = Cast<ACharacter>(GetOwner());
 }
 
 void AAbstract_Weapon::SetWeaponState(EWeapon::State NewState)
@@ -84,14 +86,8 @@ EWeapon::State AAbstract_Weapon::GetCurrentState() const
 
 bool AAbstract_Weapon::CanFire() const
 {
-	float timeBetweenShots = (1 / (FireRate / 60));
-
-	if (UGameplayStatics::GetRealTimeSeconds(GetWorld()) - LastFireTime > timeBetweenShots - 0.01 && CurrentAmmoInClip > 0)
-	{
-		return true;
-	}
-
-	return false;
+	bool bStateOKToFire = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
+	return ((bStateOKToFire == true) && (PendingReload == false));
 }
 
 bool AAbstract_Weapon::CanReload() const
@@ -190,6 +186,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 					ShootDir = AdjustedDir;
 				}
 			}
+			
 			ServerFireProjectile(Origin, ShootDir);
 		}
 	}
@@ -228,7 +225,7 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 		Projectile->Instigator = Instigator;
 		Projectile->SetOwner(this);
 		Projectile->InitVelocity(ProjectileVelocity * 10);
-		Projectile->InitProjectileProperties(Damage, ProjectileVelocity * 10, ProjectileLifeSpan);
+		Projectile->InitProjectileProperties(Damage, ProjectileVelocity * 100, ProjectileLifeSpan);
 
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
 	}
@@ -301,10 +298,19 @@ void AAbstract_Weapon::StartReloading_Implementation()
 		PendingReload = true;
 		DetermineWeaponState();
 
-		float reloadTime = (CurrentAmmoInClip > 0) ? ShortReloadTime : LongReloadTime;
+		float reloadTime = GetReloadDuration();
 
 		GetWorldTimerManager().SetTimer(TimerHandle_StopReload, this, &AAbstract_Weapon::StopReloading, reloadTime, false);
-		GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &AAbstract_Weapon::ReloadWeapon, reloadTime, false);
+
+		if (Role == ROLE_Authority)
+		{
+			GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &AAbstract_Weapon::ReloadWeapon, reloadTime, false);
+		}
+
+		if (MyPawn->IsLocallyControlled())
+		{
+			PlayWeaponSound(ReloadSound);
+		}
 	}
 }
 
@@ -358,7 +364,7 @@ void AAbstract_Weapon::UseAmmo()
 void AAbstract_Weapon::DetermineWeaponState()
 {
 	EWeapon::State NewState = EWeapon::Idle;
-
+	
 	if (IsEquipped)
 	{
 		if (PendingReload)
@@ -408,8 +414,6 @@ void AAbstract_Weapon::OnBurstFinished()
 
 void AAbstract_Weapon::HandleFiring()
 {
-	APawn* MyPawn = Cast<APawn>(GetOwner());
-
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
 		if (MyPawn && MyPawn->IsLocallyControlled())
@@ -427,13 +431,7 @@ void AAbstract_Weapon::HandleFiring()
 		if (CurrentAmmoInClip == 0  && CurrentAmmoLeft == 0 && !Refiring)
 		{
 			// Play out of ammo sound
-			/*PlayWeaponSound(OutOfAmmoSound);
-			AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(MyPawn->Controller);
-			AShooterHUD* MyHUD = MyPC ? Cast<AShooterHUD>(MyPC->GetHUD()) : NULL;
-			if (MyHUD)
-			{
-				MyHUD->NotifyOutOfAmmo();
-			}*/
+			PlayWeaponSound(OutOfAmmoSound);
 		}
 
 		// stop weapon fire FX, but stay in Firing state
@@ -511,4 +509,20 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
     DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
 	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
 	
+}
+
+UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
+{
+	UAudioComponent* AC = NULL;
+	if (Sound && MyPawn)
+	{
+		AC = UGameplayStatics::SpawnSoundAttached(Sound, MyPawn->GetRootComponent());
+	}
+
+	return AC;
+}
+
+float AAbstract_Weapon::GetReloadDuration()
+{
+	return (CurrentAmmoInClip > 0) ? ShortReloadTime : LongReloadTime;
 }

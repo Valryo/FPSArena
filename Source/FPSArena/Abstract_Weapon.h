@@ -60,6 +60,10 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	/** pawn owner */
+	UPROPERTY(Transient)
+		class ACharacter* MyPawn;
+
 	bool AimingDownSight;
 	bool PendingReload;
 	bool IsEquipped;
@@ -126,12 +130,13 @@ protected:
 	FVector GetCameraDamageStartLocation(const FVector& AimDir) const;
 	FHitResult WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const;
 
-	/** spawn projectile on server */
-	UFUNCTION(reliable, server, WithValidation)
-		void ServerFireProjectile(FVector Origin, FVector ShootDir);
+	/** play weapon sounds */
+	UAudioComponent* PlayWeaponSound(USoundCue* Sound);
 
 
 	FVector GetCameraAim() const;
+
+	float GetReloadDuration();
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -148,6 +153,10 @@ protected:
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopReload();
+
+	/** spawn projectile on server */
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerFireProjectile(FVector Origin, FVector ShootDir);
 
 public:
 	/** set the weapon's owning pawn */
@@ -229,17 +238,37 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float AccuracyJumping;
 
-	/** Sound to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
-		class USoundBase* FireSound;
+
+	//////////////////////////////////////////////////////////////////////////
+	// -===- Sound effect -===-
+
+	/** firing audio (bLoopedFireSound set) */
+	UPROPERTY(Transient)
+		UAudioComponent* FireAC;
 
 	/** Sound to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
-		class USoundBase* EmptyMagSound;
+		USoundCue* FireSound;
 
-	/** Sound to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
-		class USoundBase* ReloadSound;
+	/** looped fire sound (bLoopedFireSound set) */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* FireLoopSound;
+
+	/** finished burst sound (bLoopedFireSound set) */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* FireFinishSound;
+
+	/** out of ammo sound */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* OutOfAmmoSound;
+
+	/** reload sound */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* ReloadSound;
+
+	/** is fire sound looped? */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		bool LoopedFireSound = true;
 
 public :
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
