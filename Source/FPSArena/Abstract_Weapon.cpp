@@ -55,6 +55,13 @@ AAbstract_Weapon::AAbstract_Weapon()
 	FiringSpreadMax = 10.f;
 }
 
+void AAbstract_Weapon::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	CurrentFiringSpread = WeaponSpread;
+}
+
 void AAbstract_Weapon::BeginPlay()
 {
 	Super::BeginPlay();
@@ -209,12 +216,6 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 
 			ServerFireProjectile(Origin, AimDir);
 		}
-	}
-
-	// try and play the sound if specified
-	if (FireSound != NULL)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
 	}
 
 	
@@ -436,7 +437,13 @@ void AAbstract_Weapon::OnBurstFinished()
 	GetWorldTimerManager().ClearTimer(RefireTimerHandle);
 	Refiring = false;
 	BurstCounter = 0;
-	CurrentFiringSpread = 0.f;
+	CurrentFiringSpread = WeaponSpread;
+
+	// stop firing FX locally, unless it's a dedicated server
+	if (GetNetMode() != NM_DedicatedServer)
+	{
+		StopSimulatingWeaponFire();
+	}
 }
 
 void AAbstract_Weapon::HandleFiring()
@@ -447,6 +454,11 @@ void AAbstract_Weapon::HandleFiring()
 
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
+		if (GetNetMode() != NM_DedicatedServer)
+		{
+			SimulateWeaponFire();
+		}
+
 		if (MyPawn && MyPawn->IsLocallyControlled())
 		{
 			FireWeapon();
@@ -573,4 +585,102 @@ UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
 float AAbstract_Weapon::GetReloadDuration()
 {
 	return (CurrentAmmoInClip > 0) ? ShortReloadTime : LongReloadTime;
+}
+
+void AAbstract_Weapon::SimulateWeaponFire()
+{
+	if (Role == ROLE_Authority && CurrentState != EWeapon::Firing)
+	{
+		return;
+	}
+
+	//if (MuzzleFX)
+	//{
+	//	USkeletalMeshComponent* UseWeaponMesh = GetWeaponMesh();
+	//	if (!bLoopedMuzzleFX || MuzzlePSC == NULL)
+	//	{
+	//		// Split screen requires we create 2 effects. One that we see and one that the other player sees.
+	//		if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
+	//		{
+	//			AController* PlayerCon = MyPawn->GetController();
+	//			if (PlayerCon != NULL)
+	//			{
+	//				Mesh1P->GetSocketLocation(MuzzleAttachPoint);
+	//				MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
+	//				MuzzlePSC->bOwnerNoSee = false;
+	//				MuzzlePSC->bOnlyOwnerSee = true;
+
+	//				Mesh3P->GetSocketLocation(MuzzleAttachPoint);
+	//				MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
+	//				MuzzlePSCSecondary->bOwnerNoSee = true;
+	//				MuzzlePSCSecondary->bOnlyOwnerSee = false;
+	//			}
+	//		}
+	//		else
+	//		{
+	//			MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
+	//		}
+	//	}
+	//}
+
+	//if (!bLoopedFireAnim || !bPlayingFireAnim)
+	//{
+	//	PlayWeaponAnimation(FireAnim);
+	//	bPlayingFireAnim = true;
+	//}
+	
+	if (LoopedFireSound)
+	{
+		if (FireAC == NULL)
+		{
+			FireAC = PlayWeaponSound(FireLoopSound);
+		}
+	}
+	else
+	{
+		PlayWeaponSound(FireSound);
+	}
+
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+	APlayerController* PC = Cast<APlayerController>(MyPawn->Controller	);
+
+	if (PC != NULL && PC->IsLocalController())
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, PC->GetName());
+		/*if (FireCameraShake != NULL)
+		{
+			PC->ClientPlayCameraShake(FireCameraShake, 1);
+		}*/
+	}
+}
+
+void AAbstract_Weapon::StopSimulatingWeaponFire()
+{
+	//if (bLoopedMuzzleFX)
+	//{
+	//	if (MuzzlePSC != NULL)
+	//	{
+	//		MuzzlePSC->DeactivateSystem();
+	//		MuzzlePSC = NULL;
+	//	}
+	//	if (MuzzlePSCSecondary != NULL)
+	//	{
+	//		MuzzlePSCSecondary->DeactivateSystem();
+	//		MuzzlePSCSecondary = NULL;
+	//	}
+	//}
+
+	//if (bLoopedFireAnim && bPlayingFireAnim)
+	//{
+	//	StopWeaponAnimation(FireAnim);
+	//	bPlayingFireAnim = false;
+	//}
+
+	if (FireAC)
+	{
+		FireAC->FadeOut(0.1f, 0.0f);
+		FireAC = NULL;
+
+		PlayWeaponSound(FireFinishSound);
+	}
 }

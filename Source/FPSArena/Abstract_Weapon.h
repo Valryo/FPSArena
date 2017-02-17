@@ -50,6 +50,9 @@ public:
 	// Sets default values for this actor's properties
 	AAbstract_Weapon();
 
+	/** initial setup */
+	virtual void PostInitializeComponents() override;
+
 	/** Projectile class to spawn */
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		TSubclassOf<class AAbstract_Projectile> ProjectileClass;
@@ -68,6 +71,7 @@ protected:
 	bool WantsToFire;
 	bool Refiring;
 	bool Bursting;
+	
 
 	/** current weapon state */
 	EWeapon::State CurrentState;
@@ -160,6 +164,12 @@ protected:
 	/** spawn projectile on server */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerFireProjectile(FVector Origin, FVector ShootDir);
+
+	/** Called in network play to do the cosmetic fx for firing */
+	virtual void SimulateWeaponFire();
+
+	/** Called in network play to stop cosmetic fx (e.g. for a looping shot). */
+	virtual void StopSimulatingWeaponFire();
 
 public:
 	/** set the weapon's owning pawn */
@@ -260,6 +270,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float AccuracyJumping;*/
+
+	//////////////////////////////////////////////////////////////////////////
+
 
 
 	//////////////////////////////////////////////////////////////////////////
