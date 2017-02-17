@@ -233,24 +233,38 @@ protected:
 		int MaxAmmo;
 
 	/** base weapon spread (degrees) */
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
 		float WeaponSpread;
 
 	/** continuous firing: spread increment */
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
 		float FiringSpreadIncrement;
 
 	/** continuous firing: max increment */
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
 		float FiringSpreadMax;
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float VerticalRecoil;
+	
+	float HorizontalRecoil = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float HorizontalRecoil;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float HorizontalRecoilMin;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float HorizontalRecoilMax;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float HorizontalTolerance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float AngleMin;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float AngleMax;
+
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float Bloom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")

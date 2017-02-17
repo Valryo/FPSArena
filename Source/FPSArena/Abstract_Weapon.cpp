@@ -214,6 +214,26 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				StopFiring();
 			}
 
+			// Recoil
+			float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
+			float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
+			
+			if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
+			{
+				FinalRecoilYaw *= FMath::RoundFromZero(FMath::FRandRange(-1, 1));
+			}
+			else if (HorizontalRecoil > 0)
+			{
+				FinalRecoilYaw *= -1;
+			}
+
+			HorizontalRecoil += FinalRecoilYaw;
+
+			APawn* MyPawn = Cast<APawn>(GetOwner());
+
+			MyPawn->AddControllerPitchInput(-VerticalRecoil);
+			MyPawn->AddControllerYawInput(FinalRecoilYaw + RecoilAngle);
+
 			ServerFireProjectile(Origin, AimDir);
 		}
 	}
@@ -438,6 +458,7 @@ void AAbstract_Weapon::OnBurstFinished()
 	Refiring = false;
 	BurstCounter = 0;
 	CurrentFiringSpread = WeaponSpread;
+	HorizontalRecoil = 0.f;
 
 	// stop firing FX locally, unless it's a dedicated server
 	if (GetNetMode() != NM_DedicatedServer)
@@ -639,18 +660,6 @@ void AAbstract_Weapon::SimulateWeaponFire()
 	else
 	{
 		PlayWeaponSound(FireSound);
-	}
-
-	APawn* MyPawn = Cast<APawn>(GetOwner());
-	APlayerController* PC = Cast<APlayerController>(MyPawn->Controller	);
-
-	if (PC != NULL && PC->IsLocalController())
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, PC->GetName());
-		/*if (FireCameraShake != NULL)
-		{
-			PC->ClientPlayCameraShake(FireCameraShake, 1);
-		}*/
 	}
 }
 
