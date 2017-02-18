@@ -142,6 +142,10 @@ protected:
 
 	int BurstCounter = 0;
 
+	/** current spread from continuous firing */
+	float CurrentFiringSpread = 0.f;
+
+
 	//////////////////////////////////////////////////////////////////////////
 	// Weapon utils
 	FVector InitialRotation;
