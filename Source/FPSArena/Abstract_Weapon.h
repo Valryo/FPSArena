@@ -145,6 +145,12 @@ protected:
 	/** current spread from continuous firing */
 	float CurrentFiringSpread = 0.f;
 
+	/** Computes the horizontal recoil */
+	float ComputeHorizontalRecoil();
+
+	/** Computes the spread */
+	FVector ComputeSpread(const FVector& ShootDir);
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input - server side

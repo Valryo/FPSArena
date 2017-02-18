@@ -198,14 +198,6 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				}
 			}
 			
-			// Spread
-			const int32 RandomSeed = FMath::Rand();
-			FRandomStream WeaponRandomStream(RandomSeed);
-			const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
-
-			const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
-			CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
-
 			BurstCounter++;
 
 			if (BurstCounter == NumberBurstShot && WeaponClass == WeaponClass::WC_Burst)
@@ -214,41 +206,50 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				StopFiring();
 			}
 
+			// Spread
+			FVector AimDir = ComputeSpread(ShootDir);
+
 			// Recoil
-			float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
-			float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
-			
-			if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
-			{
-				FinalRecoilYaw *= FMath::RoundFromZero(FMath::FRandRange(-1, 1));
-			}
-			else if (HorizontalRecoil > 0)
-			{
-				FinalRecoilYaw *= -1;
-			}
-
-			HorizontalRecoil += FinalRecoilYaw;
-
 			APawn* MyPawn = Cast<APawn>(GetOwner());
 
 			MyPawn->AddControllerPitchInput(-VerticalRecoil);
-			MyPawn->AddControllerYawInput(FinalRecoilYaw + RecoilAngle);
+			MyPawn->AddControllerYawInput(ComputeHorizontalRecoil());
 
+			// Spawn projectile on the server
 			ServerFireProjectile(Origin, AimDir);
 		}
 	}
+}
 
-	
-	//// try and play a firing animation if specified
-	//if (FireAnimation != NULL)
-	//{
-	//	// Get the animation object for the arms mesh
-	//	UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-	//	if (AnimInstance != NULL)
-	//	{
-	//		AnimInstance->Montage_Play(FireAnimation, 1.f);
-	//	}
-	//}
+FVector AAbstract_Weapon::ComputeSpread(const FVector& ShootDir)
+{
+	const int32 RandomSeed = FMath::Rand();
+	FRandomStream WeaponRandomStream(RandomSeed);
+	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
+
+	const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
+	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
+
+	return AimDir;
+}
+
+float AAbstract_Weapon::ComputeHorizontalRecoil()
+{
+	float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
+	float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
+
+	if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
+	{
+		FinalRecoilYaw *= FMath::RoundFromZero(FMath::FRandRange(-1, 1));
+	}
+	else if (HorizontalRecoil > 0)
+	{
+		FinalRecoilYaw *= -1;
+	}
+
+	HorizontalRecoil += FinalRecoilYaw;
+
+	return FinalRecoilYaw + RecoilAngle;
 }
 
 bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector ShootDir)
