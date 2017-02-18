@@ -50,6 +50,9 @@ public:
 	// Sets default values for this actor's properties
 	AAbstract_Weapon();
 
+	/** initial setup */
+	virtual void PostInitializeComponents() override;
+
 	/** Projectile class to spawn */
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		TSubclassOf<class AAbstract_Projectile> ProjectileClass;
@@ -60,9 +63,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	/** pawn owner */
-	UPROPERTY(Transient)
-		class ACharacter* MyPawn;
 
 	bool AimingDownSight;
 	bool PendingReload;
@@ -70,6 +70,8 @@ protected:
 	bool PendingEquip;
 	bool WantsToFire;
 	bool Refiring;
+	bool Bursting;
+	
 
 	/** current weapon state */
 	EWeapon::State CurrentState;
@@ -138,6 +140,11 @@ protected:
 
 	float GetReloadDuration();
 
+	int BurstCounter = 0;
+
+	/** current spread from continuous firing */
+	float CurrentFiringSpread = 0.f;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input - server side
@@ -158,6 +165,12 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerFireProjectile(FVector Origin, FVector ShootDir);
 
+	/** Called in network play to do the cosmetic fx for firing */
+	virtual void SimulateWeaponFire();
+
+	/** Called in network play to stop cosmetic fx (e.g. for a looping shot). */
+	virtual void StopSimulatingWeaponFire();
+
 public:
 	/** set the weapon's owning pawn */
 	void SetOwningPawn(ACharacter* NewOwner);
@@ -175,6 +188,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		float FireRate;
 	
+	/** Time between two consecutive shot while burst firing */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+		float TimeBetweenShotBurstFire;
+
+	/** Time between two consecutive shot while burst firing */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+		float NumberBurstShot;
+
 	/** Projectile velocity in meters per second */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		float ProjectileVelocity;
@@ -211,13 +232,39 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MaxAmmo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
+	/** base weapon spread (degrees) */
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
+		float WeaponSpread;
+
+	/** continuous firing: spread increment */
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
+		float FiringSpreadIncrement;
+
+	/** continuous firing: max increment */
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
+		float FiringSpreadMax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float VerticalRecoil;
+	
+	float HorizontalRecoil = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float HorizontalRecoil;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float HorizontalRecoilMin;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float HorizontalRecoilMax;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float HorizontalTolerance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float AngleMin;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+		float AngleMax;
+
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float Bloom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
@@ -236,7 +283,10 @@ protected:
 		float AccuracyCrouchWalking;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float AccuracyJumping;
+		float AccuracyJumping;*/
+
+	//////////////////////////////////////////////////////////////////////////
+
 
 
 	//////////////////////////////////////////////////////////////////////////
