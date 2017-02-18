@@ -696,3 +696,8 @@ void AAbstract_Weapon::StopSimulatingWeaponFire()
 		PlayWeaponSound(FireFinishSound);
 	}
 }
+
+float AAbstract_Weapon::GetReloadPlayRate(float AnimationLength)
+{
+	return AnimationLength / GetReloadDuration();
+}

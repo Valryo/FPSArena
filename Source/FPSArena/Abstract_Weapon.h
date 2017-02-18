@@ -142,8 +142,6 @@ protected:
 
 	int BurstCounter = 0;
 
-	/** current spread from continuous firing */
-	float CurrentFiringSpread = 0.f;
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -159,6 +157,8 @@ protected:
 	/** Computes the spread */
 	FVector ComputeSpread(const FVector& ShootDir);
 
+	/** Get play rate for reload animation */
+	float GetReloadPlayRate(float AnimationLength);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input - server side
