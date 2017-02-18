@@ -272,11 +272,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float HorizontalTolerance;
 
-	/** Angle of recoil minimum  in radians */
+	/** Angle of recoil minimum  in degrees */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float AngleMin;
 
-	/** Angle or recoil maximum in radians */
+	/** Angle or recoil maximum in degrees */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float AngleMax;
 

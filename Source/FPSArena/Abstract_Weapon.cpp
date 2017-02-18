@@ -249,7 +249,7 @@ float AAbstract_Weapon::ComputeHorizontalRecoil()
 
 	HorizontalRecoil += FinalRecoilYaw;
 
-	return FinalRecoilYaw + RecoilAngle;
+	return FinalRecoilYaw + FMath::DegreesToRadians(RecoilAngle);
 }
 
 bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector ShootDir)
