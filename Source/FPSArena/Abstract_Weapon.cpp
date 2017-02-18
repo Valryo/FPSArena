@@ -41,7 +41,7 @@ AAbstract_Weapon::AAbstract_Weapon()
 	LastFireTime = 0.f;
 
 	CurrentAmmoInClip = MagazineSize;
-	CurrentAmmoLeft = MaxAmmo;
+	CurrentAmmoInReserve = MaxAmmo;
 
 	ShortReloadTime = 0.f;
 	LongReloadTime = 0.f;
@@ -67,7 +67,7 @@ void AAbstract_Weapon::BeginPlay()
 	Super::BeginPlay();
 
 	CurrentAmmoInClip = MagazineSize;
-	CurrentAmmoLeft = MaxAmmo;
+	CurrentAmmoInReserve = MaxAmmo;
 
 	TimeBetweenShots = 1.f / (FireRate / 60.f);
 }
@@ -102,7 +102,7 @@ bool AAbstract_Weapon::CanFire() const
 
 bool AAbstract_Weapon::CanReload() const
 {
-	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoLeft > 0);
+	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoInReserve > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
 	return ((GotAmmo == true) && (StateOKToReload == true));
@@ -392,12 +392,12 @@ void AAbstract_Weapon::ServerStopReload_Implementation()
 
 void AAbstract_Weapon::ReloadWeapon()
 {
-	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoLeft);
+	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoInReserve);
 
 	if (ClipDelta > 0)
 	{
 		CurrentAmmoInClip += ClipDelta;
-		CurrentAmmoLeft -= ClipDelta;
+		CurrentAmmoInReserve -= ClipDelta;
 	}
 }
 
@@ -440,6 +440,8 @@ void AAbstract_Weapon::DetermineWeaponState()
 
 void AAbstract_Weapon::OnBurstStarted()
 {
+	InitialRotation = GetCameraAim();
+
 	// start firing, can be delayed to satisfy TimeBetweenShots
 	const float GameTime = GetWorld()->GetTimeSeconds();
 
@@ -493,7 +495,7 @@ void AAbstract_Weapon::HandleFiring()
 	}
 	else if (MyPawn && MyPawn->IsLocallyControlled())
 	{
-		if (CurrentAmmoInClip == 0  && CurrentAmmoLeft == 0 && !Refiring)
+		if (CurrentAmmoInClip == 0  && CurrentAmmoInReserve == 0 && !Refiring)
 		{
 			// Play out of ammo sound
 			PlayWeaponSound(OutOfAmmoSound);
@@ -587,7 +589,7 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
  
     // Replicate to everyone
     DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
-	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
+	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInReserve);
 	
 }
 

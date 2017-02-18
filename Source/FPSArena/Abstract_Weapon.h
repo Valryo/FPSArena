@@ -142,6 +142,10 @@ protected:
 
 	int BurstCounter = 0;
 
+	//////////////////////////////////////////////////////////////////////////
+	// Weapon utils
+	FVector InitialRotation;
+
 	/** current spread from continuous firing */
 	float CurrentFiringSpread = 0.f;
 
@@ -226,47 +230,53 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MagazineSize;
 	
-	/** amount of bullets left in the magazine */
+	/** Amount of bullets left in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
 	int CurrentAmmoInClip;
 
-	/** amount of bullet left in the reserve */
+	/** Amount of bullet left in the reserve */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
-	int CurrentAmmoLeft;
+		int CurrentAmmoInReserve;
 	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
 		int MaxAmmo;
 
-	/** base weapon spread (degrees) */
+	/** Base weapon spread (degrees) */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
 		float WeaponSpread;
 
-	/** continuous firing: spread increment */
+	/** Continuous firing: spread increment */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
 		float FiringSpreadIncrement;
 
-	/** continuous firing: max increment */
+	/** Continuous firing: max increment */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
 		float FiringSpreadMax;
 
+	/** Vertical recoil in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float VerticalRecoil;
 	
 	float HorizontalRecoil = 0.f;
 
+	/** Horizontal recoil minimum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float HorizontalRecoilMin;
 	
+	/** Horizontal recoil maximum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float HorizontalRecoilMax;
 
+	/** Horizontal recoil tolerance */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float HorizontalTolerance;
 
+	/** Angle of recoil minimum  in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float AngleMin;
 
+	/** Angle or recoil maximum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float AngleMax;
 
