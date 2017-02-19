@@ -4,13 +4,14 @@
 #include "Abstract_Weapon.h"
 #include "Abstract_Projectile.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 // Sets default values
 AAbstract_Weapon::AAbstract_Weapon()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
@@ -34,6 +35,8 @@ AAbstract_Weapon::AAbstract_Weapon()
 	WantsToFire = false;
 	Refiring = false;
 	Bursting = false;
+	Fired = false;
+	Recovering = false;
 
 	CurrentState = EWeapon::Idle;
 	WeaponClass = WeaponClass::WC_Auto;
@@ -41,7 +44,7 @@ AAbstract_Weapon::AAbstract_Weapon()
 	LastFireTime = 0.f;
 
 	CurrentAmmoInClip = MagazineSize;
-	CurrentAmmoLeft = MaxAmmo;
+	CurrentAmmoInReserve = MaxAmmo;
 
 	ShortReloadTime = 0.f;
 	LongReloadTime = 0.f;
@@ -67,9 +70,75 @@ void AAbstract_Weapon::BeginPlay()
 	Super::BeginPlay();
 
 	CurrentAmmoInClip = MagazineSize;
-	CurrentAmmoLeft = MaxAmmo;
+	CurrentAmmoInReserve = MaxAmmo;
 
 	TimeBetweenShots = 1.f / (FireRate / 60.f);
+}
+
+void AAbstract_Weapon::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+	APlayerController* PC = Instigator ? Cast<APlayerController>(Instigator->Controller) : NULL;
+
+	if (CurrentState == EWeapon::Firing)
+	{
+		if (Fired)
+		{
+			CurrentVerticalRecoil = 0.f;
+			Fired = false;
+		}
+
+		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, VerticalRecoil, DeltaTime, 10.0f);
+
+		if (CurrentVerticalRecoil != VerticalRecoil && CurrentAmmoInClip > 0)
+		{
+			MyPawn->AddControllerPitchInput(-CurrentVerticalRecoil);
+			RecoveryY += CurrentVerticalRecoil;
+		}
+
+		if (PC)
+		{
+			float X = 0.f, Y = 0.f;
+
+			PC->GetInputMouseDelta(X, Y);
+			RecoveryX += X;
+			RecoveryY += Y;
+		}
+	}
+
+	if (Recovering)
+	{
+		CurrentRecoveryX = FMath::FInterpTo(CurrentRecoveryX, RecoveryX, DeltaTime, RecoilRecoveryRate);
+		CurrentRecoveryY = FMath::FInterpTo(CurrentRecoveryY, RecoveryY, DeltaTime, RecoilRecoveryRate);
+
+		float recoveryY = (TotalRecoveryY + CurrentRecoveryY > RecoveryY) ? RecoveryY - TotalRecoveryY : CurrentRecoveryY; 
+		float recoveryX = (TotalRecoveryX + CurrentRecoveryX > RecoveryX) ? RecoveryX - TotalRecoveryX : CurrentRecoveryX;
+		
+		if (TotalRecoveryX < RecoveryX)
+		{
+			MyPawn->AddControllerYawInput(-recoveryX);
+		}
+		
+		if (TotalRecoveryY < RecoveryY)
+		{
+			MyPawn->AddControllerPitchInput(recoveryY);
+		}
+		
+		TotalRecoveryY += CurrentRecoveryY;
+		TotalRecoveryX += CurrentRecoveryX;
+		
+		if (TotalRecoveryY > RecoveryY && TotalRecoveryX > RecoveryX)
+		{
+			Recovering = false;
+			CurrentRecoveryY = 0.f;
+			TotalRecoveryY = 0.f;
+
+			CurrentRecoveryX = 0.f;
+			TotalRecoveryX = 0.f;
+		}
+	}
 }
 
 void AAbstract_Weapon::SetWeaponState(EWeapon::State NewState)
@@ -102,7 +171,7 @@ bool AAbstract_Weapon::CanFire() const
 
 bool AAbstract_Weapon::CanReload() const
 {
-	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoLeft > 0);
+	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoInReserve > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
 	return ((GotAmmo == true) && (StateOKToReload == true));
@@ -198,14 +267,6 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				}
 			}
 			
-			// Spread
-			const int32 RandomSeed = FMath::Rand();
-			FRandomStream WeaponRandomStream(RandomSeed);
-			const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
-
-			const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
-			CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
-
 			BurstCounter++;
 
 			if (BurstCounter == NumberBurstShot && WeaponClass == WeaponClass::WC_Burst)
@@ -214,41 +275,53 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				StopFiring();
 			}
 
+			// Spread
+			FVector AimDir = ComputeSpread(ShootDir);
+
 			// Recoil
-			float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
-			float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
-			
-			if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
-			{
-				FinalRecoilYaw *= FMath::RoundFromZero(FMath::FRandRange(-1, 1));
-			}
-			else if (HorizontalRecoil > 0)
-			{
-				FinalRecoilYaw *= -1;
-			}
-
-			HorizontalRecoil += FinalRecoilYaw;
-
+			float TotalHorizontalRecoil = ComputeHorizontalRecoil();
 			APawn* MyPawn = Cast<APawn>(GetOwner());
 
-			MyPawn->AddControllerPitchInput(-VerticalRecoil);
-			MyPawn->AddControllerYawInput(FinalRecoilYaw + RecoilAngle);
+			//MyPawn->AddControllerPitchInput(-VerticalRecoil);
+			MyPawn->AddControllerYawInput(TotalHorizontalRecoil);
+			RecoveryX += TotalHorizontalRecoil;
 
+			// Spawn projectile on the server
 			ServerFireProjectile(Origin, AimDir);
+			Fired = true;
 		}
 	}
+}
 
-	
-	//// try and play a firing animation if specified
-	//if (FireAnimation != NULL)
-	//{
-	//	// Get the animation object for the arms mesh
-	//	UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-	//	if (AnimInstance != NULL)
-	//	{
-	//		AnimInstance->Montage_Play(FireAnimation, 1.f);
-	//	}
-	//}
+FVector AAbstract_Weapon::ComputeSpread(const FVector& ShootDir)
+{
+	const int32 RandomSeed = FMath::Rand();
+	FRandomStream WeaponRandomStream(RandomSeed);
+	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
+
+	const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
+	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
+
+	return AimDir;
+}
+
+float AAbstract_Weapon::ComputeHorizontalRecoil()
+{
+	float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
+	float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
+
+	if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
+	{
+		FinalRecoilYaw *= FMath::RoundFromZero(FMath::FRandRange(-1, 1));
+	}
+	else if (HorizontalRecoil > 0)
+	{
+		FinalRecoilYaw *= -1;
+	}
+
+	HorizontalRecoil += FinalRecoilYaw;
+
+	return FinalRecoilYaw + FMath::DegreesToRadians(RecoilAngle);
 }
 
 bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector ShootDir)
@@ -389,14 +462,19 @@ void AAbstract_Weapon::ServerStopReload_Implementation()
 	StopReloading();
 }
 
+void AAbstract_Weapon::StartRecovering()
+{
+	Recovering = true;
+}
+
 void AAbstract_Weapon::ReloadWeapon()
 {
-	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoLeft);
+	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoInReserve);
 
 	if (ClipDelta > 0)
 	{
 		CurrentAmmoInClip += ClipDelta;
-		CurrentAmmoLeft -= ClipDelta;
+		CurrentAmmoInReserve -= ClipDelta;
 	}
 }
 
@@ -439,6 +517,12 @@ void AAbstract_Weapon::DetermineWeaponState()
 
 void AAbstract_Weapon::OnBurstStarted()
 {
+	InitialRotation = GetCameraAim();
+	RecoveryX = 0.f;
+	RecoveryY = 0.f;
+
+	Recovering = false;
+
 	// start firing, can be delayed to satisfy TimeBetweenShots
 	const float GameTime = GetWorld()->GetTimeSeconds();
 
@@ -459,6 +543,8 @@ void AAbstract_Weapon::OnBurstFinished()
 	BurstCounter = 0;
 	CurrentFiringSpread = WeaponSpread;
 	HorizontalRecoil = 0.f;
+
+	GetWorldTimerManager().SetTimer(TimerHandle_StartRecover, this, &AAbstract_Weapon::StartRecovering, RecoilRecoveryDelay, false);
 
 	// stop firing FX locally, unless it's a dedicated server
 	if (GetNetMode() != NM_DedicatedServer)
@@ -492,7 +578,7 @@ void AAbstract_Weapon::HandleFiring()
 	}
 	else if (MyPawn && MyPawn->IsLocallyControlled())
 	{
-		if (CurrentAmmoInClip == 0  && CurrentAmmoLeft == 0 && !Refiring)
+		if (CurrentAmmoInClip == 0  && CurrentAmmoInReserve == 0 && !Refiring)
 		{
 			// Play out of ammo sound
 			PlayWeaponSound(OutOfAmmoSound);
@@ -586,7 +672,7 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
  
     // Replicate to everyone
     DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
-	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
+	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInReserve);
 	
 }
 
@@ -692,4 +778,9 @@ void AAbstract_Weapon::StopSimulatingWeaponFire()
 
 		PlayWeaponSound(FireFinishSound);
 	}
+}
+
+float AAbstract_Weapon::GetReloadPlayRate(float AnimationLength)
+{
+	return AnimationLength / GetReloadDuration();
 }
