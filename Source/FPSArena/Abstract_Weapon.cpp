@@ -4,13 +4,14 @@
 #include "Abstract_Weapon.h"
 #include "Abstract_Projectile.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 // Sets default values
 AAbstract_Weapon::AAbstract_Weapon()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
@@ -34,6 +35,8 @@ AAbstract_Weapon::AAbstract_Weapon()
 	WantsToFire = false;
 	Refiring = false;
 	Bursting = false;
+	Fired = false;
+	Recovering = false;
 
 	CurrentState = EWeapon::Idle;
 	WeaponClass = WeaponClass::WC_Auto;
@@ -70,6 +73,72 @@ void AAbstract_Weapon::BeginPlay()
 	CurrentAmmoInReserve = MaxAmmo;
 
 	TimeBetweenShots = 1.f / (FireRate / 60.f);
+}
+
+void AAbstract_Weapon::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+	APlayerController* PC = Instigator ? Cast<APlayerController>(Instigator->Controller) : NULL;
+
+	if (CurrentState == EWeapon::Firing)
+	{
+		if (Fired)
+		{
+			CurrentVerticalRecoil = 0.f;
+			Fired = false;
+		}
+
+		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, VerticalRecoil, DeltaTime, 10.0f);
+
+		if (CurrentVerticalRecoil != VerticalRecoil && CurrentAmmoInClip > 0)
+		{
+			MyPawn->AddControllerPitchInput(-CurrentVerticalRecoil);
+			RecoveryY += CurrentVerticalRecoil;
+		}
+
+		if (PC)
+		{
+			float X = 0.f, Y = 0.f;
+
+			PC->GetInputMouseDelta(X, Y);
+			RecoveryX += X;
+			RecoveryY += Y;
+		}
+	}
+
+	if (Recovering)
+	{
+		CurrentRecoveryX = FMath::FInterpTo(CurrentRecoveryX, RecoveryX, DeltaTime, RecoilRecoveryRate);
+		CurrentRecoveryY = FMath::FInterpTo(CurrentRecoveryY, RecoveryY, DeltaTime, RecoilRecoveryRate);
+
+		float recoveryY = (TotalRecoveryY + CurrentRecoveryY > RecoveryY) ? RecoveryY - TotalRecoveryY : CurrentRecoveryY; 
+		float recoveryX = (TotalRecoveryX + CurrentRecoveryX > RecoveryX) ? RecoveryX - TotalRecoveryX : CurrentRecoveryX;
+		
+		if (TotalRecoveryX < RecoveryX)
+		{
+			MyPawn->AddControllerYawInput(-recoveryX);
+		}
+		
+		if (TotalRecoveryY < RecoveryY)
+		{
+			MyPawn->AddControllerPitchInput(recoveryY);
+		}
+		
+		TotalRecoveryY += CurrentRecoveryY;
+		TotalRecoveryX += CurrentRecoveryX;
+		
+		if (TotalRecoveryY > RecoveryY && TotalRecoveryX > RecoveryX)
+		{
+			Recovering = false;
+			CurrentRecoveryY = 0.f;
+			TotalRecoveryY = 0.f;
+
+			CurrentRecoveryX = 0.f;
+			TotalRecoveryX = 0.f;
+		}
+	}
 }
 
 void AAbstract_Weapon::SetWeaponState(EWeapon::State NewState)
@@ -210,13 +279,16 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 			FVector AimDir = ComputeSpread(ShootDir);
 
 			// Recoil
+			float TotalHorizontalRecoil = ComputeHorizontalRecoil();
 			APawn* MyPawn = Cast<APawn>(GetOwner());
 
-			MyPawn->AddControllerPitchInput(-VerticalRecoil);
-			MyPawn->AddControllerYawInput(ComputeHorizontalRecoil());
+			//MyPawn->AddControllerPitchInput(-VerticalRecoil);
+			MyPawn->AddControllerYawInput(TotalHorizontalRecoil);
+			RecoveryX += TotalHorizontalRecoil;
 
 			// Spawn projectile on the server
 			ServerFireProjectile(Origin, AimDir);
+			Fired = true;
 		}
 	}
 }
@@ -390,6 +462,11 @@ void AAbstract_Weapon::ServerStopReload_Implementation()
 	StopReloading();
 }
 
+void AAbstract_Weapon::StartRecovering()
+{
+	Recovering = true;
+}
+
 void AAbstract_Weapon::ReloadWeapon()
 {
 	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoInReserve);
@@ -441,6 +518,10 @@ void AAbstract_Weapon::DetermineWeaponState()
 void AAbstract_Weapon::OnBurstStarted()
 {
 	InitialRotation = GetCameraAim();
+	RecoveryX = 0.f;
+	RecoveryY = 0.f;
+
+	Recovering = false;
 
 	// start firing, can be delayed to satisfy TimeBetweenShots
 	const float GameTime = GetWorld()->GetTimeSeconds();
@@ -462,6 +543,8 @@ void AAbstract_Weapon::OnBurstFinished()
 	BurstCounter = 0;
 	CurrentFiringSpread = WeaponSpread;
 	HorizontalRecoil = 0.f;
+
+	GetWorldTimerManager().SetTimer(TimerHandle_StartRecover, this, &AAbstract_Weapon::StartRecovering, RecoilRecoveryDelay, false);
 
 	// stop firing FX locally, unless it's a dedicated server
 	if (GetNetMode() != NM_DedicatedServer)
