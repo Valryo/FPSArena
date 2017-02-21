@@ -157,9 +157,14 @@ protected:
 	float RecoveryX = 0.f, RecoveryY = 0.f;
 	float CurrentRecoveryX = 0.f, CurrentRecoveryY = 0.f;
 	float TotalRecoveryX = 0.f, TotalRecoveryY = 0.f;
+	float TotalRecoilX = 0.f, TotalRecoilY = 0.f;
+	float TotalHorizontalRecoil = 0.f;
 
 	/** current vertical recoil from continuous firing, used for smoothing pitch */
 	float CurrentVerticalRecoil = 0.f;
+
+	/** current vertical recoil from continuous firing, used for smoothing pitch */
+	float CurrentHorizontalRecoil = 0.f;
 
 	/** current spread from continuous firing */
 	float CurrentFiringSpread = 0.f;
@@ -175,6 +180,12 @@ protected:
 
 	/** Start recovering from recoil*/
 	void StartRecovering();
+
+	/** play weapon animations */
+	float PlayWeaponAnimation(UAnimMontage* Animation);
+
+	/** stop playing weapon animations */
+	void StopWeaponAnimation(const UAnimMontage& Animation);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input - server side
@@ -363,6 +374,10 @@ protected:
 	/** is fire sound looped? */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		bool LoopedFireSound = true;
+
+	/** reload animations */
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		UAnimMontage* ReloadAnim;
 
 public :
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")

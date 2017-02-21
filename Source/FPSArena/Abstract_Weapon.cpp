@@ -81,31 +81,57 @@ void AAbstract_Weapon::Tick(float DeltaTime)
 
 	APawn* MyPawn = Cast<APawn>(GetOwner());
 	APlayerController* PC = Instigator ? Cast<APlayerController>(Instigator->Controller) : NULL;
+	float X = 0.f, Y = 0.f;
 
 	if (CurrentState == EWeapon::Firing)
 	{
+		if (PC)
+		{
+			PC->GetInputMouseDelta(X, Y);
+		}
+
 		if (Fired)
 		{
 			CurrentVerticalRecoil = 0.f;
+			CurrentHorizontalRecoil = 0.f;
+
+			TotalRecoilX = 0.f;
+			TotalRecoilY = 0.f;
+
 			Fired = false;
 		}
 
 		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, VerticalRecoil, DeltaTime, 10.0f);
+		CurrentHorizontalRecoil = FMath::FInterpTo(CurrentHorizontalRecoil, TotalHorizontalRecoil, DeltaTime, 10.0f);
 
-		if (CurrentVerticalRecoil != VerticalRecoil && CurrentAmmoInClip > 0)
+		float recoilY = (TotalRecoilY + CurrentVerticalRecoil > VerticalRecoil) ? VerticalRecoil - TotalRecoilY : CurrentVerticalRecoil;
+		float recoilX = (TotalRecoilX + CurrentHorizontalRecoil > TotalHorizontalRecoil) ? TotalHorizontalRecoil - TotalRecoilX : CurrentHorizontalRecoil;
+
+		if (TotalRecoilX < TotalHorizontalRecoil)
 		{
-			MyPawn->AddControllerPitchInput(-CurrentVerticalRecoil);
-			RecoveryY += CurrentVerticalRecoil;
+			MyPawn->AddControllerYawInput(recoilX);
+			RecoveryX += recoilX;
+
+			if (X != 0 && UKismetMathLibrary::SignOfFloat(X) != UKismetMathLibrary::SignOfFloat(recoilX))
+			{
+				RecoveryX -= FMath::Min(RecoveryX, RecoveryX + X);
+			}
 		}
 
-		if (PC)
+		if (TotalRecoilY < VerticalRecoil)
 		{
-			float X = 0.f, Y = 0.f;
+			MyPawn->AddControllerPitchInput(-recoilY);
+			RecoveryY += recoilY;
 
-			PC->GetInputMouseDelta(X, Y);
-			RecoveryX += X;
-			RecoveryY += Y;
+
+			if (Y < 0)
+			{
+				RecoveryY -= FMath::Min(RecoveryY, RecoveryY + Y);
+			}
 		}
+
+		TotalRecoilX += CurrentHorizontalRecoil; 
+		TotalRecoilY += CurrentVerticalRecoil;
 	}
 
 	if (Recovering)
@@ -115,7 +141,7 @@ void AAbstract_Weapon::Tick(float DeltaTime)
 
 		float recoveryY = (TotalRecoveryY + CurrentRecoveryY > RecoveryY) ? RecoveryY - TotalRecoveryY : CurrentRecoveryY; 
 		float recoveryX = (TotalRecoveryX + CurrentRecoveryX > RecoveryX) ? RecoveryX - TotalRecoveryX : CurrentRecoveryX;
-		
+
 		if (TotalRecoveryX < RecoveryX)
 		{
 			MyPawn->AddControllerYawInput(-recoveryX);
@@ -279,12 +305,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 			FVector AimDir = ComputeSpread(ShootDir);
 
 			// Recoil
-			float TotalHorizontalRecoil = ComputeHorizontalRecoil();
-			APawn* MyPawn = Cast<APawn>(GetOwner());
-
-			//MyPawn->AddControllerPitchInput(-VerticalRecoil);
-			MyPawn->AddControllerYawInput(TotalHorizontalRecoil);
-			RecoveryX += TotalHorizontalRecoil;
+			TotalHorizontalRecoil = ComputeHorizontalRecoil();
 
 			// Spawn projectile on the server
 			ServerFireProjectile(Origin, AimDir);
@@ -430,6 +451,8 @@ void AAbstract_Weapon::StartReloading_Implementation()
 		{
 			PlayWeaponSound(ReloadSound);
 		}
+
+		PlayWeaponAnimation(ReloadAnim);
 	}
 }
 
@@ -543,6 +566,7 @@ void AAbstract_Weapon::OnBurstFinished()
 	BurstCounter = 0;
 	CurrentFiringSpread = WeaponSpread;
 	HorizontalRecoil = 0.f;
+	TotalHorizontalRecoil = 0.f;
 
 	GetWorldTimerManager().SetTimer(TimerHandle_StartRecover, this, &AAbstract_Weapon::StartRecovering, RecoilRecoveryDelay, false);
 
@@ -783,4 +807,35 @@ void AAbstract_Weapon::StopSimulatingWeaponFire()
 float AAbstract_Weapon::GetReloadPlayRate(float AnimationLength)
 {
 	return AnimationLength / GetReloadDuration();
+}
+
+float AAbstract_Weapon::PlayWeaponAnimation(UAnimMontage* Animation)
+{
+	//APawn* MyPawn = Cast<APawn>(GetOwner());
+
+	ACharacter* Character = Instigator ? Cast<ACharacter>(Instigator) : nullptr;
+	float Duration = 0.0f;
+	if (Character)
+	{
+		//UAnimMontage* UseAnim = MyPawn->IsFirstPerson() ? Animation.Pawn1P : Animation.Pawn3P;
+		if (ReloadAnim)
+		{
+			Character->PlayAnimMontage(Animation);
+			//Duration = MyPawn->PlayAnimMontage(UseAnim);
+		}
+	}
+
+	return Duration;
+}
+
+void AAbstract_Weapon::StopWeaponAnimation(const UAnimMontage& Animation)
+{
+	/*if (MyPawn)
+	{
+		UAnimMontage* UseAnim = MyPawn->IsFirstPerson() ? Animation.Pawn1P : Animation.Pawn3P;
+		if (UseAnim)
+		{
+			MyPawn->StopAnimMontage(UseAnim);
+		}
+	}*/
 }
