@@ -361,6 +361,7 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 		Projectile->SetOwner(this);
 		Projectile->InitVelocity(ProjectileVelocity * 10);
 		Projectile->InitProjectileProperties(Damage, ProjectileVelocity * 100, ProjectileLifeSpan);
+		Projectile->SetOrigin(Origin);
 
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
 	}
