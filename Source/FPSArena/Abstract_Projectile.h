@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ImpactEffect.h"
+
 #include "GameFramework/Actor.h"
 #include "Abstract_Projectile.generated.h"
 
@@ -22,6 +24,9 @@ public:
 	/** initialize the projectile properties */
 	void InitProjectileProperties(int32 Damage, float Velocity, float Lifespan);
 
+	/** spawn trail effect */
+	void SetOrigin(const FVector& Origin);
+
 	/** handle hit */
 	UFUNCTION()
 		void OnImpact(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -35,15 +40,23 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 		USphereComponent* CollisionComp;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
+	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		UParticleSystemComponent* ParticleComp;
 
 	/*UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 		UStaticMeshComponent* MeshComp;*/
 
 protected:
+	/** impact effects */
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+		TSubclassOf<AImpactEffect> ImpactTemplate;
+
+
 	/** shutdown projectile and prepare for destruction */
 	void DisableAndDestroy();
+
+	/** spawn effects for impact */
+	void SpawnImpactEffects(const FHitResult& Impact);
 
 protected:
 	/** Returns MovementComp subobject **/
