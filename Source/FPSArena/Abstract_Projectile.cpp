@@ -26,7 +26,7 @@ AAbstract_Projectile::AAbstract_Projectile()
 	ParticleComp->bAutoActivate = false;
 	ParticleComp->bAutoDestroy = false;
 	ParticleComp->SetupAttachment(RootComponent);
-
+	
 	MovementComp = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
 	MovementComp->UpdatedComponent = CollisionComp;
 	MovementComp->InitialSpeed = Velocity;
@@ -44,6 +44,7 @@ AAbstract_Projectile::AAbstract_Projectile()
 	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
 	CollisionComp->CanCharacterStepUpOn = ECB_No;
 
+	
 	//MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
 }
 
@@ -68,6 +69,11 @@ void AAbstract_Projectile::InitVelocity(float Speed)
 
 void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (ParticleComp)
+	{
+		//ParticleComp->Deactivate();
+	}
+
 	if (Role == ROLE_Authority)
 	{
 		APlayerController* PlayerController = Cast<APlayerController>(Instigator->GetController());
@@ -84,6 +90,16 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 		}
 		
 		DisableAndDestroy();
+	}
+
+	// play FX locally
+	if (GetNetMode() != NM_DedicatedServer)
+	{
+		/*const FVector EndTrace = Origin + ShootDir * InstantConfig.WeaponRange;
+		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
+
+		SpawnTrailEffect(EndPoint);*/
+		SpawnImpactEffects(SweepResult);
 	}
 }
 
@@ -102,4 +118,46 @@ void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity
 	InitVelocity(Velocity);
 
 	SetLifeSpan(Lifespan);
+}
+
+void AAbstract_Projectile::SpawnImpactEffects(const FHitResult& Impact)
+{
+	//GEngine->AddOnScreenDebugMessage(-1, 50.0f, FColor::Red, Impact.GetActor().GetName());
+	if (ImpactTemplate)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "SpawnImpactEffects2");
+		//FHitResult UseImpact = Impact;
+
+		////// trace again to find component lost during replication
+		////if (!Impact.Component.IsValid())
+		////{
+		////	const FVector StartTrace = Impact.ImpactPoint + Impact.ImpactNormal * 10.0f;
+		////	const FVector EndTrace = Impact.ImpactPoint - Impact.ImpactNormal * 10.0f;
+		////	FHitResult Hit = WeaponTrace(StartTrace, EndTrace);
+		////	UseImpact = Hit;
+		////}
+
+		//FTransform const SpawnTransform(Impact.ImpactNormal.Rotation(), Impact.ImpactPoint);
+		//AImpactEffect* EffectActor = GetWorld()->SpawnActorDeferred<AImpactEffect>(ImpactTemplate, SpawnTransform);
+		//if (EffectActor)
+		//{
+		//	EffectActor->SurfaceHit = UseImpact;
+		//	UGameplayStatics::FinishSpawningActor(EffectActor, SpawnTransform);
+		//}
+	}
+}
+
+void AAbstract_Projectile::SetOrigin(const FVector& Origin)
+{
+	if (ParticleComp)
+	{
+		FVector Source, End;
+
+		ParticleComp->SetBeamSourcePoint(0, Origin, 0);
+		ParticleComp->GetBeamSourcePoint(0, 0, Source);
+		ParticleComp->GetBeamEndPoint(0, End);
+
+		/*GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, "Source" + Source.ToString());
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, "End" + End.ToString());*/
+	}
 }

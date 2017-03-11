@@ -4,13 +4,14 @@
 #include "Abstract_Weapon.h"
 #include "Abstract_Projectile.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 // Sets default values
 AAbstract_Weapon::AAbstract_Weapon()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
@@ -33,6 +34,9 @@ AAbstract_Weapon::AAbstract_Weapon()
 	PendingEquip = false;
 	WantsToFire = false;
 	Refiring = false;
+	Bursting = false;
+	Fired = false;
+	Recovering = false;
 
 	CurrentState = EWeapon::Idle;
 	WeaponClass = WeaponClass::WC_Auto;
@@ -40,7 +44,7 @@ AAbstract_Weapon::AAbstract_Weapon()
 	LastFireTime = 0.f;
 
 	CurrentAmmoInClip = MagazineSize;
-	CurrentAmmoLeft = MaxAmmo;
+	CurrentAmmoInReserve = MaxAmmo;
 
 	ShortReloadTime = 0.f;
 	LongReloadTime = 0.f;
@@ -48,6 +52,17 @@ AAbstract_Weapon::AAbstract_Weapon()
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
 	bReplicates = true;
 	bNetUseOwnerRelevancy = true;
+
+	WeaponSpread = 5.f;
+	FiringSpreadIncrement = 1.f;
+	FiringSpreadMax = 10.f;
+}
+
+void AAbstract_Weapon::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	CurrentFiringSpread = WeaponSpread;
 }
 
 void AAbstract_Weapon::BeginPlay()
@@ -55,11 +70,101 @@ void AAbstract_Weapon::BeginPlay()
 	Super::BeginPlay();
 
 	CurrentAmmoInClip = MagazineSize;
-	CurrentAmmoLeft = MaxAmmo;
+	CurrentAmmoInReserve = MaxAmmo;
 
 	TimeBetweenShots = 1.f / (FireRate / 60.f);
+}
 
-	MyPawn = Cast<ACharacter>(GetOwner());
+void AAbstract_Weapon::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+	APlayerController* PC = Instigator ? Cast<APlayerController>(Instigator->Controller) : NULL;
+	float X = 0.f, Y = 0.f;
+
+	if (CurrentState == EWeapon::Firing)
+	{
+		if (PC)
+		{
+			PC->GetInputMouseDelta(X, Y);
+		}
+
+		if (Fired)
+		{
+			CurrentVerticalRecoil = 0.f;
+			CurrentHorizontalRecoil = 0.f;
+
+			TotalRecoilX = 0.f;
+			TotalRecoilY = 0.f;
+
+			Fired = false;
+		}
+
+		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, VerticalRecoil, DeltaTime, 10.0f);
+		CurrentHorizontalRecoil = FMath::FInterpTo(CurrentHorizontalRecoil, TotalHorizontalRecoil, DeltaTime, 10.0f);
+
+		float recoilY = (TotalRecoilY + CurrentVerticalRecoil > VerticalRecoil) ? VerticalRecoil - TotalRecoilY : CurrentVerticalRecoil;
+		float recoilX = (TotalRecoilX + CurrentHorizontalRecoil > TotalHorizontalRecoil) ? TotalHorizontalRecoil - TotalRecoilX : CurrentHorizontalRecoil;
+
+		if (TotalRecoilX < TotalHorizontalRecoil)
+		{
+			MyPawn->AddControllerYawInput(recoilX);
+			RecoveryX += recoilX;
+
+			if (X != 0 && UKismetMathLibrary::SignOfFloat(X) != UKismetMathLibrary::SignOfFloat(recoilX))
+			{
+				RecoveryX -= FMath::Min(RecoveryX, RecoveryX + X);
+			}
+		}
+
+		if (TotalRecoilY < VerticalRecoil)
+		{
+			MyPawn->AddControllerPitchInput(-recoilY);
+			RecoveryY += recoilY;
+
+
+			if (Y < 0)
+			{
+				RecoveryY -= FMath::Min(RecoveryY, RecoveryY + Y);
+			}
+		}
+
+		TotalRecoilX += CurrentHorizontalRecoil; 
+		TotalRecoilY += CurrentVerticalRecoil;
+	}
+
+	if (Recovering)
+	{
+		CurrentRecoveryX = FMath::FInterpTo(CurrentRecoveryX, RecoveryX, DeltaTime, RecoilRecoveryRate);
+		CurrentRecoveryY = FMath::FInterpTo(CurrentRecoveryY, RecoveryY, DeltaTime, RecoilRecoveryRate);
+
+		float recoveryY = (TotalRecoveryY + CurrentRecoveryY > RecoveryY) ? RecoveryY - TotalRecoveryY : CurrentRecoveryY; 
+		float recoveryX = (TotalRecoveryX + CurrentRecoveryX > RecoveryX) ? RecoveryX - TotalRecoveryX : CurrentRecoveryX;
+
+		if (TotalRecoveryX < RecoveryX)
+		{
+			MyPawn->AddControllerYawInput(-recoveryX);
+		}
+		
+		if (TotalRecoveryY < RecoveryY)
+		{
+			MyPawn->AddControllerPitchInput(recoveryY);
+		}
+		
+		TotalRecoveryY += CurrentRecoveryY;
+		TotalRecoveryX += CurrentRecoveryX;
+		
+		if (TotalRecoveryY > RecoveryY && TotalRecoveryX > RecoveryX)
+		{
+			Recovering = false;
+			CurrentRecoveryY = 0.f;
+			TotalRecoveryY = 0.f;
+
+			CurrentRecoveryX = 0.f;
+			TotalRecoveryX = 0.f;
+		}
+	}
 }
 
 void AAbstract_Weapon::SetWeaponState(EWeapon::State NewState)
@@ -92,7 +197,7 @@ bool AAbstract_Weapon::CanFire() const
 
 bool AAbstract_Weapon::CanReload() const
 {
-	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoLeft > 0);
+	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoInReserve > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
 	return ((GotAmmo == true) && (StateOKToReload == true));
@@ -141,6 +246,7 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 		if (World != NULL)
 		{
 			FVector  ShootDir = GetCameraAim();
+			
 			FVector Origin = FP_Gun->GetSocketLocation(MuzzleAttachPoint);
 
 			// trace from camera to check what's under crosshair
@@ -187,27 +293,56 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				}
 			}
 			
-			ServerFireProjectile(Origin, ShootDir);
+			BurstCounter++;
+
+			if (BurstCounter == NumberBurstShot && WeaponClass == WeaponClass::WC_Burst)
+			{
+				Bursting = false;
+				StopFiring();
+			}
+
+			// Spread
+			FVector AimDir = ComputeSpread(ShootDir);
+
+			// Recoil
+			TotalHorizontalRecoil = ComputeHorizontalRecoil();
+
+			// Spawn projectile on the server
+			ServerFireProjectile(Origin, AimDir);
+			Fired = true;
 		}
 	}
+}
 
-	// try and play the sound if specified
-	if (FireSound != NULL)
+FVector AAbstract_Weapon::ComputeSpread(const FVector& ShootDir)
+{
+	const int32 RandomSeed = FMath::Rand();
+	FRandomStream WeaponRandomStream(RandomSeed);
+	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
+
+	const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
+	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
+
+	return AimDir;
+}
+
+float AAbstract_Weapon::ComputeHorizontalRecoil()
+{
+	float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
+	float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
+
+	if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+		FinalRecoilYaw *= FMath::RoundFromZero(FMath::FRandRange(-1, 1));
+	}
+	else if (HorizontalRecoil > 0)
+	{
+		FinalRecoilYaw *= -1;
 	}
 
-	
-	//// try and play a firing animation if specified
-	//if (FireAnimation != NULL)
-	//{
-	//	// Get the animation object for the arms mesh
-	//	UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-	//	if (AnimInstance != NULL)
-	//	{
-	//		AnimInstance->Montage_Play(FireAnimation, 1.f);
-	//	}
-	//}
+	HorizontalRecoil += FinalRecoilYaw;
+
+	return FinalRecoilYaw + FMath::DegreesToRadians(RecoilAngle);
 }
 
 bool AAbstract_Weapon::ServerFireProjectile_Validate(FVector Origin, FVector ShootDir)
@@ -226,6 +361,7 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 		Projectile->SetOwner(this);
 		Projectile->InitVelocity(ProjectileVelocity * 10);
 		Projectile->InitProjectileProperties(Damage, ProjectileVelocity * 100, ProjectileLifeSpan);
+		Projectile->SetOrigin(Origin);
 
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
 	}
@@ -254,15 +390,18 @@ void AAbstract_Weapon::StartFiring_Implementation()
 
 void AAbstract_Weapon::StopFiring_Implementation()
 {
-	if (Role < ROLE_Authority)
+	if (!Bursting)
 	{
-		ServerStopFire();
-	}
+		if (Role < ROLE_Authority)
+		{
+			ServerStopFire();
+		}
 
-	if (WantsToFire)
-	{
-		WantsToFire = false;
-		DetermineWeaponState();
+		if (WantsToFire)
+		{
+			WantsToFire = false;
+			DetermineWeaponState();
+		}
 	}
 }
 
@@ -295,6 +434,8 @@ void AAbstract_Weapon::StartReloading_Implementation()
 
 	if (CanReload())
 	{
+		APawn* MyPawn = Cast<APawn>(GetOwner());
+
 		PendingReload = true;
 		DetermineWeaponState();
 
@@ -311,6 +452,8 @@ void AAbstract_Weapon::StartReloading_Implementation()
 		{
 			PlayWeaponSound(ReloadSound);
 		}
+
+		PlayWeaponAnimation(ReloadAnim);
 	}
 }
 
@@ -343,14 +486,19 @@ void AAbstract_Weapon::ServerStopReload_Implementation()
 	StopReloading();
 }
 
+void AAbstract_Weapon::StartRecovering()
+{
+	Recovering = true;
+}
+
 void AAbstract_Weapon::ReloadWeapon()
 {
-	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoLeft);
+	int32 ClipDelta = FMath::Min(MagazineSize - CurrentAmmoInClip, CurrentAmmoInReserve);
 
 	if (ClipDelta > 0)
 	{
 		CurrentAmmoInClip += ClipDelta;
-		CurrentAmmoLeft -= ClipDelta;
+		CurrentAmmoInReserve -= ClipDelta;
 	}
 }
 
@@ -393,6 +541,12 @@ void AAbstract_Weapon::DetermineWeaponState()
 
 void AAbstract_Weapon::OnBurstStarted()
 {
+	InitialRotation = GetCameraAim();
+	RecoveryX = 0.f;
+	RecoveryY = 0.f;
+
+	Recovering = false;
+
 	// start firing, can be delayed to satisfy TimeBetweenShots
 	const float GameTime = GetWorld()->GetTimeSeconds();
 
@@ -410,12 +564,33 @@ void AAbstract_Weapon::OnBurstFinished()
 {
 	GetWorldTimerManager().ClearTimer(RefireTimerHandle);
 	Refiring = false;
+	BurstCounter = 0;
+	CurrentFiringSpread = WeaponSpread;
+	HorizontalRecoil = 0.f;
+	TotalHorizontalRecoil = 0.f;
+
+	GetWorldTimerManager().SetTimer(TimerHandle_StartRecover, this, &AAbstract_Weapon::StartRecovering, RecoilRecoveryDelay, false);
+
+	// stop firing FX locally, unless it's a dedicated server
+	if (GetNetMode() != NM_DedicatedServer)
+	{
+		StopSimulatingWeaponFire();
+	}
 }
 
 void AAbstract_Weapon::HandleFiring()
 {
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "HandleFiring");
+
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
+		if (GetNetMode() != NM_DedicatedServer)
+		{
+			SimulateWeaponFire();
+		}
+
 		if (MyPawn && MyPawn->IsLocallyControlled())
 		{
 			FireWeapon();
@@ -428,7 +603,7 @@ void AAbstract_Weapon::HandleFiring()
 	}
 	else if (MyPawn && MyPawn->IsLocallyControlled())
 	{
-		if (CurrentAmmoInClip == 0  && CurrentAmmoLeft == 0 && !Refiring)
+		if (CurrentAmmoInClip == 0  && CurrentAmmoInReserve == 0 && !Refiring)
 		{
 			// Play out of ammo sound
 			PlayWeaponSound(OutOfAmmoSound);
@@ -452,11 +627,26 @@ void AAbstract_Weapon::HandleFiring()
 			StartReloading();
 		}
 
-		// setup refire timer
-		Refiring = (CurrentState == EWeapon::Firing && WeaponClass == WeaponClass::WC_Auto);
+		float RefireTime = 0;
+		switch (WeaponClass)
+		{
+		case WeaponClass::WC_Auto:
+			Refiring = CurrentState == EWeapon::Firing;
+			RefireTime = TimeBetweenShots;
+			break;
+		case WeaponClass::WC_Burst:
+			Refiring = CurrentState == EWeapon::Firing && BurstCounter < NumberBurstShot;
+			RefireTime = TimeBetweenShotBurstFire;
+			Bursting = true;
+			break;
+		case WeaponClass::WC_SemiAuto:
+			Refiring = false;
+			break;
+		}
+
 		if (Refiring)
 		{
-			GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::HandleFiring, TimeBetweenShots, false);
+			GetWorldTimerManager().SetTimer(RefireTimerHandle, this, &AAbstract_Weapon::HandleFiring, RefireTime, false);
 		}
 	}
 
@@ -507,13 +697,15 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
  
     // Replicate to everyone
     DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
-	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoLeft);
+	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInReserve);
 	
 }
 
 UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
 {
 	UAudioComponent* AC = NULL;
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+
 	if (Sound && MyPawn)
 	{
 		AC = UGameplayStatics::SpawnSoundAttached(Sound, MyPawn->GetRootComponent());
@@ -525,4 +717,126 @@ UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
 float AAbstract_Weapon::GetReloadDuration()
 {
 	return (CurrentAmmoInClip > 0) ? ShortReloadTime : LongReloadTime;
+}
+
+void AAbstract_Weapon::SimulateWeaponFire()
+{
+	if (Role == ROLE_Authority && CurrentState != EWeapon::Firing)
+	{
+		return;
+	}
+
+	//if (MuzzleFX)
+	//{
+	//	USkeletalMeshComponent* UseWeaponMesh = GetWeaponMesh();
+	//	if (!bLoopedMuzzleFX || MuzzlePSC == NULL)
+	//	{
+	//		// Split screen requires we create 2 effects. One that we see and one that the other player sees.
+	//		if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
+	//		{
+	//			AController* PlayerCon = MyPawn->GetController();
+	//			if (PlayerCon != NULL)
+	//			{
+	//				Mesh1P->GetSocketLocation(MuzzleAttachPoint);
+	//				MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
+	//				MuzzlePSC->bOwnerNoSee = false;
+	//				MuzzlePSC->bOnlyOwnerSee = true;
+
+	//				Mesh3P->GetSocketLocation(MuzzleAttachPoint);
+	//				MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
+	//				MuzzlePSCSecondary->bOwnerNoSee = true;
+	//				MuzzlePSCSecondary->bOnlyOwnerSee = false;
+	//			}
+	//		}
+	//		else
+	//		{
+	//			MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
+	//		}
+	//	}
+	//}
+
+	//if (!bLoopedFireAnim || !bPlayingFireAnim)
+	//{
+	//	PlayWeaponAnimation(FireAnim);
+	//	bPlayingFireAnim = true;
+	//}
+	
+	if (LoopedFireSound)
+	{
+		if (FireAC == NULL)
+		{
+			FireAC = PlayWeaponSound(FireLoopSound);
+		}
+	}
+	else
+	{
+		PlayWeaponSound(FireSound);
+	}
+}
+
+void AAbstract_Weapon::StopSimulatingWeaponFire()
+{
+	//if (bLoopedMuzzleFX)
+	//{
+	//	if (MuzzlePSC != NULL)
+	//	{
+	//		MuzzlePSC->DeactivateSystem();
+	//		MuzzlePSC = NULL;
+	//	}
+	//	if (MuzzlePSCSecondary != NULL)
+	//	{
+	//		MuzzlePSCSecondary->DeactivateSystem();
+	//		MuzzlePSCSecondary = NULL;
+	//	}
+	//}
+
+	//if (bLoopedFireAnim && bPlayingFireAnim)
+	//{
+	//	StopWeaponAnimation(FireAnim);
+	//	bPlayingFireAnim = false;
+	//}
+
+	if (FireAC)
+	{
+		FireAC->FadeOut(0.1f, 0.0f);
+		FireAC = NULL;
+
+		PlayWeaponSound(FireFinishSound);
+	}
+}
+
+float AAbstract_Weapon::GetReloadPlayRate(float AnimationLength)
+{
+	return AnimationLength / GetReloadDuration();
+}
+
+float AAbstract_Weapon::PlayWeaponAnimation(UAnimMontage* Animation)
+{
+	//APawn* MyPawn = Cast<APawn>(GetOwner());
+
+	ACharacter* Character = Instigator ? Cast<ACharacter>(Instigator) : nullptr;
+	float Duration = 0.0f;
+	if (Character)
+	{
+		//UAnimMontage* UseAnim = MyPawn->IsFirstPerson() ? Animation.Pawn1P : Animation.Pawn3P;
+		if (ReloadAnim)
+		{
+			Character->PlayAnimMontage(Animation);
+			//Duration = MyPawn->PlayAnimMontage(UseAnim);
+		}
+	}
+
+	return Duration;
+}
+
+void AAbstract_Weapon::StopWeaponAnimation(const UAnimMontage& Animation)
+{
+	/*if (MyPawn)
+	{
+		UAnimMontage* UseAnim = MyPawn->IsFirstPerson() ? Animation.Pawn1P : Animation.Pawn3P;
+		if (UseAnim)
+		{
+			MyPawn->StopAnimMontage(UseAnim);
+		}
+	}*/
 }
