@@ -57,7 +57,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		TSubclassOf<class AAbstract_Projectile> ProjectileClass;
 
-	
 
 protected:
 	// Called when the game starts or when spawned
@@ -93,6 +92,8 @@ protected:
 
 	/** consume a ammo */
 	void UseAmmo();
+
+	
 
 	/** determines the actual weapon state */
 	void DetermineWeaponState();
@@ -202,6 +203,9 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopReload();
 
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerAddAmmo();
+
 	/** spawn projectile on server */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerFireProjectile(FVector Origin, FVector ShootDir);
@@ -263,7 +267,7 @@ protected:
 	
 	/** Amount of bullets left in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
-	int CurrentAmmoInClip;
+		int CurrentAmmoInClip;
 
 	/** Amount of bullet left in the reserve */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
@@ -371,6 +375,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* ReloadSound;
 
+	/** getting ammo sound sound */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* AddAmmoSound;
+
 	/** is fire sound looped? */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		bool LoopedFireSound = true;
@@ -398,5 +406,9 @@ public :
 	/** Fires a projectile. */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void FireWeapon();
+
+	/** add ammo to the reserve */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		void AddAmmo();
 
 };

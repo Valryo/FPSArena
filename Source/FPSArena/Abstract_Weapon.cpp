@@ -486,6 +486,16 @@ void AAbstract_Weapon::ServerStopReload_Implementation()
 	StopReloading();
 }
 
+bool AAbstract_Weapon::ServerAddAmmo_Validate()
+{
+	return true;
+}
+
+void AAbstract_Weapon::ServerAddAmmo_Implementation()
+{
+	AddAmmo();
+}
+
 void AAbstract_Weapon::StartRecovering()
 {
 	Recovering = true;
@@ -502,11 +512,24 @@ void AAbstract_Weapon::ReloadWeapon()
 	}
 }
 
-
-
 void AAbstract_Weapon::UseAmmo()
 {
 	CurrentAmmoInClip--;
+}
+
+void AAbstract_Weapon::AddAmmo_Implementation()
+{
+	if (Role < ROLE_Authority)
+	{
+		ServerAddAmmo();
+	}
+
+	if (CurrentAmmoInReserve < MaxAmmo)
+	{
+		CurrentAmmoInReserve += FMath::Min(MagazineSize, MaxAmmo - CurrentAmmoInReserve);
+
+		PlayWeaponSound(AddAmmoSound);
+	}
 }
 
 void AAbstract_Weapon::DetermineWeaponState()
