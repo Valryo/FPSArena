@@ -157,7 +157,7 @@ void AAbstract_Projectile::SetOrigin(const FVector& Origin)
 		ParticleComp->GetBeamSourcePoint(0, 0, Source);
 		ParticleComp->GetBeamEndPoint(0, End);
 
-		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, "Source" + Source.ToString());
-		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, "End" + End.ToString());
+		/*GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, "Source" + Source.ToString());
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, "End" + End.ToString());*/
 	}
 }
