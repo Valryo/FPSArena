@@ -44,6 +44,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Mapping")
 		static FString saveMapping(TArray<FInputActionKeyMapping> Actions, TArray<FInputAxisKeyMapping> Axis);
 
-private:
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Display")
+		static TArray<FString> getSupportedResolutionsString();
 
+private:
 };
