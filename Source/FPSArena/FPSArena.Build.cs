@@ -6,7 +6,7 @@ public class FPSArena : ModuleRules
 {
 	public FPSArena(TargetInfo Target)
 	{
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "RHI" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
