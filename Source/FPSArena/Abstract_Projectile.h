@@ -22,7 +22,7 @@ public:
 	void InitVelocity(float Speed);
 
 	/** initialize the projectile properties */
-	void InitProjectileProperties(int32 Damage, float Velocity, float Lifespan);
+	void InitProjectileProperties(int32 Damage, float HeadshotMultiplier, float Velocity, float Lifespan);
 
 	/** spawn trail effect */
 	void SetOrigin(const FVector& Origin);
@@ -68,11 +68,14 @@ protected:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet Properties")
-		int32 Damage;
+		int32 Damage = 20;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet Properties")
-		float Velocity;
+		float HeadshotMultiplier = 2.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet Properties")
-		float Lifespan;
+		float Velocity = 60.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bullet Properties")
+		float Lifespan = 1.5f;
 };

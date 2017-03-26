@@ -81,6 +81,8 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 		{
 			if (OtherActor != nullptr)
 			{
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, OtherComp->GetName());
+				
 				// Create a damage event  
 				TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
 				FDamageEvent DamageEvent(ValidDamageTypeClass);
@@ -109,9 +111,10 @@ void AAbstract_Projectile::DisableAndDestroy()
 	Destroy();
 }
 
-void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float Velocity, float Lifespan)
+void AAbstract_Projectile::InitProjectileProperties(int32 Damage, float HeadshotMultiplier, float Velocity, float Lifespan)
 {
 	this->Damage = Damage;
+	this->HeadshotMultiplier = HeadshotMultiplier;
 	this->Velocity = Velocity;
 	this->Lifespan = Lifespan;
 
