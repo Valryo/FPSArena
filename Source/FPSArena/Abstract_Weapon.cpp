@@ -19,8 +19,8 @@ AAbstract_Weapon::AAbstract_Weapon()
 	FP_Gun->bCastDynamicShadow = true;
 	FP_Gun->CastShadow = true;
 	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+	//RootComponent = FP_Gun;
 	FP_Gun->SetupAttachment(RootComponent);
-
 
 	FP_SightSocket = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Sight"));
 	FP_Gun->SetOnlyOwnerSee(false);
@@ -603,7 +603,7 @@ void AAbstract_Weapon::OnBurstFinished()
 
 void AAbstract_Weapon::HandleFiring()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "HandleFiring");
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::SanitizeFloat(CurrentAmmoInClip)	);
 
 	APawn* MyPawn = Cast<APawn>(GetOwner());
 
@@ -641,9 +641,10 @@ void AAbstract_Weapon::HandleFiring()
 		// local client will notify server
 		if (Role < ROLE_Authority)
 		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, "Call server handle firing");
 			ServerHandleFiring();
 		}
-
+		
 		// reload after firing last round
 		if (CurrentAmmoInClip <= 0 && CanReload())
 		{
@@ -684,7 +685,7 @@ bool AAbstract_Weapon::ServerHandleFiring_Validate()
 void AAbstract_Weapon::ServerHandleFiring_Implementation()
 {
 	const bool bShouldUpdateAmmo = (CurrentAmmoInClip > 0 && CanFire());
-
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, FString::SanitizeFloat(CurrentAmmoInClip));
 	HandleFiring();
 
 	if (bShouldUpdateAmmo)
@@ -749,34 +750,37 @@ void AAbstract_Weapon::SimulateWeaponFire()
 		return;
 	}
 
-	//if (MuzzleFX)
-	//{
-	//	USkeletalMeshComponent* UseWeaponMesh = GetWeaponMesh();
-	//	if (!bLoopedMuzzleFX || MuzzlePSC == NULL)
-	//	{
-	//		// Split screen requires we create 2 effects. One that we see and one that the other player sees.
-	//		if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
-	//		{
-	//			AController* PlayerCon = MyPawn->GetController();
-	//			if (PlayerCon != NULL)
-	//			{
-	//				Mesh1P->GetSocketLocation(MuzzleAttachPoint);
-	//				MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
-	//				MuzzlePSC->bOwnerNoSee = false;
-	//				MuzzlePSC->bOnlyOwnerSee = true;
+	if (MuzzleFX)
+	{
+		if (MuzzlePSC == NULL)
+		{
+			//FP_Gun->GetSocketLocation(MuzzleAttachPoint);
 
-	//				Mesh3P->GetSocketLocation(MuzzleAttachPoint);
-	//				MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
-	//				MuzzlePSCSecondary->bOwnerNoSee = true;
-	//				MuzzlePSCSecondary->bOnlyOwnerSee = false;
-	//			}
-	//		}
-	//		else
-	//		{
-	//			MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
-	//		}
-	//	}
-	//}
+			MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, FP_Gun, MuzzleAttachPoint);
+
+			//// Split screen requires we create 2 effects. One that we see and one that the other player sees.
+			//if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
+			//{
+			//	AController* PlayerCon = MyPawn->GetController();
+			//	if (PlayerCon != NULL)
+			//	{
+			//		Mesh1P->GetSocketLocation(MuzzleAttachPoint);
+			//		MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
+			//		MuzzlePSC->bOwnerNoSee = false;
+			//		MuzzlePSC->bOnlyOwnerSee = true;
+
+			//		Mesh3P->GetSocketLocation(MuzzleAttachPoint);
+			//		MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
+			//		MuzzlePSCSecondary->bOwnerNoSee = true;
+			//		MuzzlePSCSecondary->bOnlyOwnerSee = false;
+			//	}
+			//}
+			//else
+			//{
+			//	MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
+			//}
+		}
+	}
 
 	//if (!bLoopedFireAnim || !bPlayingFireAnim)
 	//{
@@ -799,6 +803,11 @@ void AAbstract_Weapon::SimulateWeaponFire()
 
 void AAbstract_Weapon::StopSimulatingWeaponFire()
 {
+	if (MuzzlePSC != NULL)
+	{
+		MuzzlePSC->DeactivateSystem();
+		MuzzlePSC = NULL;
+	}
 	//if (bLoopedMuzzleFX)
 	//{
 	//	if (MuzzlePSC != NULL)
@@ -835,17 +844,15 @@ float AAbstract_Weapon::GetReloadPlayRate(float AnimationLength)
 
 float AAbstract_Weapon::PlayWeaponAnimation(UAnimMontage* Animation)
 {
-	//APawn* MyPawn = Cast<APawn>(GetOwner());
-
 	ACharacter* Character = Instigator ? Cast<ACharacter>(Instigator) : nullptr;
 	float Duration = 0.0f;
+
 	if (Character)
 	{
-		//UAnimMontage* UseAnim = MyPawn->IsFirstPerson() ? Animation.Pawn1P : Animation.Pawn3P;
-		if (ReloadAnim)
+		if (Animation)
 		{
-			Character->PlayAnimMontage(Animation);
-			//Duration = MyPawn->PlayAnimMontage(UseAnim);
+			Duration = Animation->GetPlayLength() / GetReloadDuration();
+			Character->PlayAnimMontage(Animation, Duration);
 		}
 	}
 

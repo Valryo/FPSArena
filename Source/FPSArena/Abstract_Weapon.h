@@ -40,11 +40,11 @@ class FPSARENA_API AAbstract_Weapon : public AActor
 
 	/** Gun mesh: 1st person view (seen only by self) */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USkeletalMeshComponent* FP_Gun;
+		USkeletalMeshComponent* FP_Gun;
 
 	/** Location on gun mesh where projectiles should spawn. */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USkeletalMeshComponent* FP_SightSocket;
+		USkeletalMeshComponent* FP_SightSocket;
 
 public:	
 	// Sets default values for this actor's properties
@@ -132,6 +132,14 @@ protected:
 	/** name of bone/socket for muzzle in weapon mesh */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 		FName MuzzleAttachPoint;
+
+	/** FX for muzzle flash */
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+		UParticleSystem* MuzzleFX;
+
+	/** spawned component for muzzle FX */
+	UPROPERTY(Transient)
+		UParticleSystemComponent* MuzzlePSC;
 
 	/** times in second between two consecutive shots */
 	float TimeBetweenShots;
@@ -252,6 +260,10 @@ protected:
 	/** Class of the weapon : auto, semi-auto, burst */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		WeaponClass WeaponClass;
+
+	/** Headshot damage multiplier */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+		float HeadshotMultiplier = 2.f;
 
 	/** Reload time in seconds when there's still a bullet in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
