@@ -235,31 +235,31 @@ protected:
 
 	/** Damage dealt by the projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		int32 Damage;
+		int32 Damage = 20;
 
 	/** Fire rate in rounds per minutes */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float FireRate;
+		float FireRate = 600;
 	
 	/** Time between two consecutive shot while burst firing */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float TimeBetweenShotBurstFire;
+		float TimeBetweenShotBurstFire = 0.05;
 
 	/** Time between two consecutive shot while burst firing */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float NumberBurstShot;
+		int32 NumberBurstShot = 3;
 
 	/** Projectile velocity in meters per second */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float ProjectileVelocity;
+		float ProjectileVelocity = 60.f;
 
 	/** Projectile LifeSpan in seconds */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float ProjectileLifeSpan;
+		float ProjectileLifeSpan = 1.5f;
 
 	/** Class of the weapon : auto, semi-auto, burst */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		WeaponClass WeaponClass;
+		WeaponClass WeaponClass = WeaponClass::WC_Auto;
 
 	/** Headshot damage multiplier */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
@@ -267,73 +267,73 @@ protected:
 
 	/** Reload time in seconds when there's still a bullet in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
-		float ShortReloadTime;
+		float ShortReloadTime = 1.f;
 
 	/** Reload time in seconds when there's no bullet in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
-		float LongReloadTime;
+		float LongReloadTime = 2.f;
 
 	/** Number of rounds in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		int MagazineSize;
+		int MagazineSize = 30;
 	
 	/** Amount of bullets left in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
-		int CurrentAmmoInClip;
+		int CurrentAmmoInClip = 0;
 
 	/** Amount of bullet left in the reserve */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
-		int CurrentAmmoInReserve;
+		int CurrentAmmoInReserve = 0;
 	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		int MaxAmmo;
+		int MaxAmmo = 120;
 
 	/** Base weapon spread (degrees) */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
-		float WeaponSpread;
+		float WeaponSpread = .5f;
 
 	/** Continuous firing: spread increment */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
-		float FiringSpreadIncrement;
+		float FiringSpreadIncrement = .25f;
 
 	/** Continuous firing: max increment */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
-		float FiringSpreadMax;
+		float FiringSpreadMax = 5.f;
 
 	/** Vertical recoil in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float VerticalRecoil;
+		float VerticalRecoil = .5f;
 	
 	float HorizontalRecoil = 0.f;
 
 	/** Horizontal recoil minimum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float HorizontalRecoilMin;
+		float HorizontalRecoilMin = .175f;
 	
 	/** Horizontal recoil maximum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float HorizontalRecoilMax;
+		float HorizontalRecoilMax = .175f;
 
 	/** Horizontal recoil tolerance */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float HorizontalTolerance;
+		float HorizontalTolerance = .5f;
 
 	/** Angle of recoil minimum  in degrees */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float AngleMin;
+		float AngleMin = 13.f;
 
 	/** Angle or recoil maximum in degrees */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float AngleMax;
+		float AngleMax = 15.f;
 
 	/** Recoil recovery delay in seconds */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float RecoilRecoveryDelay;
+		float RecoilRecoveryDelay = .1f;
 
 	/** Recoil recovery rate */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float RecoilRecoveryRate;
+		float RecoilRecoveryRate = 1.f;
 
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float Bloom;

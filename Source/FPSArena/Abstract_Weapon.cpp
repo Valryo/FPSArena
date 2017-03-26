@@ -360,7 +360,7 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 		Projectile->Instigator = Instigator;
 		Projectile->SetOwner(this);
 		Projectile->InitVelocity(ProjectileVelocity * 10);
-		Projectile->InitProjectileProperties(Damage, ProjectileVelocity * 100, ProjectileLifeSpan);
+		Projectile->InitProjectileProperties(Damage, HeadshotMultiplier, ProjectileVelocity * 100, ProjectileLifeSpan);
 		Projectile->SetOrigin(Origin);
 
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
@@ -603,8 +603,6 @@ void AAbstract_Weapon::OnBurstFinished()
 
 void AAbstract_Weapon::HandleFiring()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::SanitizeFloat(CurrentAmmoInClip)	);
-
 	APawn* MyPawn = Cast<APawn>(GetOwner());
 
 	if (CurrentAmmoInClip > 0 && CanFire())
@@ -641,7 +639,6 @@ void AAbstract_Weapon::HandleFiring()
 		// local client will notify server
 		if (Role < ROLE_Authority)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, "Call server handle firing");
 			ServerHandleFiring();
 		}
 		
@@ -685,7 +682,7 @@ bool AAbstract_Weapon::ServerHandleFiring_Validate()
 void AAbstract_Weapon::ServerHandleFiring_Implementation()
 {
 	const bool bShouldUpdateAmmo = (CurrentAmmoInClip > 0 && CanFire());
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, FString::SanitizeFloat(CurrentAmmoInClip));
+
 	HandleFiring();
 
 	if (bShouldUpdateAmmo)
@@ -755,8 +752,10 @@ void AAbstract_Weapon::SimulateWeaponFire()
 		if (MuzzlePSC == NULL)
 		{
 			//FP_Gun->GetSocketLocation(MuzzleAttachPoint);
+			//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FP_Gun->GetSocketLocation(MuzzleAttachPoint).ToString());
 
-			MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, FP_Gun, MuzzleAttachPoint);
+			//MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, FP_Gun, MuzzleAttachPoint);
+			MuzzlePSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFX, FP_Gun->GetSocketTransform(MuzzleAttachPoint));
 
 			//// Split screen requires we create 2 effects. One that we see and one that the other player sees.
 			//if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
