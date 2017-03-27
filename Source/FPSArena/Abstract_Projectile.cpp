@@ -81,8 +81,6 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 		{
 			if (OtherActor != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, OtherComp->GetName());
-				
 				// Create a damage event  
 				TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
 				FDamageEvent DamageEvent(ValidDamageTypeClass);

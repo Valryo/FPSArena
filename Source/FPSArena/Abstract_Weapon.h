@@ -287,7 +287,7 @@ protected:
 	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		int MaxAmmo = 120;
+		int MaxAmmo = 150;
 
 	/** Base weapon spread (degrees) */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
