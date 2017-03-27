@@ -321,7 +321,7 @@ FVector AAbstract_Weapon::ComputeSpread(const FVector& ShootDir)
 	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
 
 	const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
-	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
+	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + (AimingDownSight ? FiringSpreadIncrement / 2 : FiringSpreadIncrement));
 
 	return AimDir;
 }
