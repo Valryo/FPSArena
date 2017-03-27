@@ -101,7 +101,7 @@ void AAbstract_Weapon::Tick(float DeltaTime)
 			Fired = false;
 		}
 
-		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, VerticalRecoil, DeltaTime, 10.0f);
+		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, GetImprovedAccuracy(VerticalRecoil), DeltaTime, 10.0f);
 		CurrentHorizontalRecoil = FMath::FInterpTo(CurrentHorizontalRecoil, TotalHorizontalRecoil, DeltaTime, 10.0f);
 
 		float recoilY = (TotalRecoilY + CurrentVerticalRecoil > VerticalRecoil) ? VerticalRecoil - TotalRecoilY : CurrentVerticalRecoil;
@@ -321,14 +321,14 @@ FVector AAbstract_Weapon::ComputeSpread(const FVector& ShootDir)
 	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
 
 	const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
-	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + (AimingDownSight ? FiringSpreadIncrement / 2 : FiringSpreadIncrement));
+	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + GetImprovedAccuracy(FiringSpreadIncrement));
 
 	return AimDir;
 }
 
 float AAbstract_Weapon::ComputeHorizontalRecoil()
 {
-	float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
+	float FinalRecoilYaw = FMath::FRandRange(GetImprovedAccuracy(HorizontalRecoilMin), GetImprovedAccuracy(HorizontalRecoilMax));
 	float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
 
 	if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
@@ -868,4 +868,9 @@ void AAbstract_Weapon::StopWeaponAnimation(const UAnimMontage& Animation)
 			MyPawn->StopAnimMontage(UseAnim);
 		}
 	}*/
+}
+
+float AAbstract_Weapon::GetImprovedAccuracy(float f)
+{
+	return (AimingDownSight ? f / AccuracyMultiplier : f);
 }
