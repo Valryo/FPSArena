@@ -155,6 +155,8 @@ protected:
 
 	float GetReloadDuration();
 
+	float GetImprovedAccuracy(float f);
+
 	int BurstCounter = 0;
 
 
@@ -162,6 +164,8 @@ protected:
 	//////////////////////////////////////////////////////////////////////////
 	// Weapon utils
 	FVector InitialRotation;
+
+	float HorizontalRecoil = 0.f;
 
 	float RecoveryX = 0.f, RecoveryY = 0.f;
 	float CurrentRecoveryX = 0.f, CurrentRecoveryY = 0.f;
@@ -287,7 +291,11 @@ protected:
 	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		int MaxAmmo = 120;
+		int MaxAmmo = 150;
+
+	/** Accuracy multiplier when aiming down the sight */
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy")
+		float AccuracyMultiplier = 2.f;
 
 	/** Base weapon spread (degrees) */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
@@ -304,8 +312,6 @@ protected:
 	/** Vertical recoil in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float VerticalRecoil = .5f;
-	
-	float HorizontalRecoil = 0.f;
 
 	/** Horizontal recoil minimum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
