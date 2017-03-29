@@ -19,8 +19,8 @@ AAbstract_Weapon::AAbstract_Weapon()
 	FP_Gun->bCastDynamicShadow = true;
 	FP_Gun->CastShadow = true;
 	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+	//RootComponent = FP_Gun;
 	FP_Gun->SetupAttachment(RootComponent);
-
 
 	FP_SightSocket = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Sight"));
 	FP_Gun->SetOnlyOwnerSee(false);
@@ -101,7 +101,7 @@ void AAbstract_Weapon::Tick(float DeltaTime)
 			Fired = false;
 		}
 
-		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, VerticalRecoil, DeltaTime, 10.0f);
+		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, GetImprovedAccuracy(VerticalRecoil), DeltaTime, 10.0f);
 		CurrentHorizontalRecoil = FMath::FInterpTo(CurrentHorizontalRecoil, TotalHorizontalRecoil, DeltaTime, 10.0f);
 
 		float recoilY = (TotalRecoilY + CurrentVerticalRecoil > VerticalRecoil) ? VerticalRecoil - TotalRecoilY : CurrentVerticalRecoil;
@@ -321,14 +321,14 @@ FVector AAbstract_Weapon::ComputeSpread(const FVector& ShootDir)
 	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
 
 	const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
-	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
+	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + GetImprovedAccuracy(FiringSpreadIncrement));
 
 	return AimDir;
 }
 
 float AAbstract_Weapon::ComputeHorizontalRecoil()
 {
-	float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
+	float FinalRecoilYaw = FMath::FRandRange(GetImprovedAccuracy(HorizontalRecoilMin), GetImprovedAccuracy(HorizontalRecoilMax));
 	float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
 
 	if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
@@ -360,7 +360,7 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 		Projectile->Instigator = Instigator;
 		Projectile->SetOwner(this);
 		Projectile->InitVelocity(ProjectileVelocity * 10);
-		Projectile->InitProjectileProperties(Damage, ProjectileVelocity * 100, ProjectileLifeSpan);
+		Projectile->InitProjectileProperties(Damage, HeadshotMultiplier, ProjectileVelocity * 100, ProjectileLifeSpan);
 		Projectile->SetOrigin(Origin);
 
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
@@ -486,6 +486,16 @@ void AAbstract_Weapon::ServerStopReload_Implementation()
 	StopReloading();
 }
 
+bool AAbstract_Weapon::ServerAddAmmo_Validate()
+{
+	return true;
+}
+
+void AAbstract_Weapon::ServerAddAmmo_Implementation()
+{
+	AddAmmo();
+}
+
 void AAbstract_Weapon::StartRecovering()
 {
 	Recovering = true;
@@ -502,11 +512,24 @@ void AAbstract_Weapon::ReloadWeapon()
 	}
 }
 
-
-
 void AAbstract_Weapon::UseAmmo()
 {
 	CurrentAmmoInClip--;
+}
+
+void AAbstract_Weapon::AddAmmo_Implementation()
+{
+	if (Role < ROLE_Authority)
+	{
+		ServerAddAmmo();
+	}
+
+	if (CurrentAmmoInReserve < MaxAmmo)
+	{
+		CurrentAmmoInReserve += FMath::Min(MagazineSize, MaxAmmo - CurrentAmmoInReserve);
+
+		PlayWeaponSound(AddAmmoSound);
+	}
 }
 
 void AAbstract_Weapon::DetermineWeaponState()
@@ -580,8 +603,6 @@ void AAbstract_Weapon::OnBurstFinished()
 
 void AAbstract_Weapon::HandleFiring()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "HandleFiring");
-
 	APawn* MyPawn = Cast<APawn>(GetOwner());
 
 	if (CurrentAmmoInClip > 0 && CanFire())
@@ -620,7 +641,7 @@ void AAbstract_Weapon::HandleFiring()
 		{
 			ServerHandleFiring();
 		}
-
+		
 		// reload after firing last round
 		if (CurrentAmmoInClip <= 0 && CanReload())
 		{
@@ -726,34 +747,39 @@ void AAbstract_Weapon::SimulateWeaponFire()
 		return;
 	}
 
-	//if (MuzzleFX)
-	//{
-	//	USkeletalMeshComponent* UseWeaponMesh = GetWeaponMesh();
-	//	if (!bLoopedMuzzleFX || MuzzlePSC == NULL)
-	//	{
-	//		// Split screen requires we create 2 effects. One that we see and one that the other player sees.
-	//		if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
-	//		{
-	//			AController* PlayerCon = MyPawn->GetController();
-	//			if (PlayerCon != NULL)
-	//			{
-	//				Mesh1P->GetSocketLocation(MuzzleAttachPoint);
-	//				MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
-	//				MuzzlePSC->bOwnerNoSee = false;
-	//				MuzzlePSC->bOnlyOwnerSee = true;
+	if (MuzzleFX)
+	{
+		if (MuzzlePSC == NULL)
+		{
+			//FP_Gun->GetSocketLocation(MuzzleAttachPoint);
+			//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FP_Gun->GetSocketLocation(MuzzleAttachPoint).ToString());
 
-	//				Mesh3P->GetSocketLocation(MuzzleAttachPoint);
-	//				MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
-	//				MuzzlePSCSecondary->bOwnerNoSee = true;
-	//				MuzzlePSCSecondary->bOnlyOwnerSee = false;
-	//			}
-	//		}
-	//		else
-	//		{
-	//			MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
-	//		}
-	//	}
-	//}
+			//MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, FP_Gun, MuzzleAttachPoint);
+			MuzzlePSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFX, FP_Gun->GetSocketTransform(MuzzleAttachPoint));
+
+			//// Split screen requires we create 2 effects. One that we see and one that the other player sees.
+			//if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
+			//{
+			//	AController* PlayerCon = MyPawn->GetController();
+			//	if (PlayerCon != NULL)
+			//	{
+			//		Mesh1P->GetSocketLocation(MuzzleAttachPoint);
+			//		MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
+			//		MuzzlePSC->bOwnerNoSee = false;
+			//		MuzzlePSC->bOnlyOwnerSee = true;
+
+			//		Mesh3P->GetSocketLocation(MuzzleAttachPoint);
+			//		MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
+			//		MuzzlePSCSecondary->bOwnerNoSee = true;
+			//		MuzzlePSCSecondary->bOnlyOwnerSee = false;
+			//	}
+			//}
+			//else
+			//{
+			//	MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
+			//}
+		}
+	}
 
 	//if (!bLoopedFireAnim || !bPlayingFireAnim)
 	//{
@@ -776,6 +802,11 @@ void AAbstract_Weapon::SimulateWeaponFire()
 
 void AAbstract_Weapon::StopSimulatingWeaponFire()
 {
+	if (MuzzlePSC != NULL)
+	{
+		MuzzlePSC->DeactivateSystem();
+		MuzzlePSC = NULL;
+	}
 	//if (bLoopedMuzzleFX)
 	//{
 	//	if (MuzzlePSC != NULL)
@@ -812,17 +843,15 @@ float AAbstract_Weapon::GetReloadPlayRate(float AnimationLength)
 
 float AAbstract_Weapon::PlayWeaponAnimation(UAnimMontage* Animation)
 {
-	//APawn* MyPawn = Cast<APawn>(GetOwner());
-
 	ACharacter* Character = Instigator ? Cast<ACharacter>(Instigator) : nullptr;
 	float Duration = 0.0f;
+
 	if (Character)
 	{
-		//UAnimMontage* UseAnim = MyPawn->IsFirstPerson() ? Animation.Pawn1P : Animation.Pawn3P;
-		if (ReloadAnim)
+		if (Animation)
 		{
-			Character->PlayAnimMontage(Animation);
-			//Duration = MyPawn->PlayAnimMontage(UseAnim);
+			Duration = Animation->GetPlayLength() / GetReloadDuration();
+			Character->PlayAnimMontage(Animation, Duration);
 		}
 	}
 
@@ -839,4 +868,9 @@ void AAbstract_Weapon::StopWeaponAnimation(const UAnimMontage& Animation)
 			MyPawn->StopAnimMontage(UseAnim);
 		}
 	}*/
+}
+
+float AAbstract_Weapon::GetImprovedAccuracy(float f)
+{
+	return (AimingDownSight ? f / AccuracyMultiplier : f);
 }
