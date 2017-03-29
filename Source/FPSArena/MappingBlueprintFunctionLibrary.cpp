@@ -115,3 +115,17 @@ FString UMappingBlueprintFunctionLibrary::saveMapping(TArray<FInputActionKeyMapp
 
 	return show;
 }
+
+TArray<FString> UMappingBlueprintFunctionLibrary::getSupportedResolutionsString() {
+
+	TArray<FString> resolutions;
+	FScreenResolutionArray ScreenRes;
+	if (RHIGetAvailableResolutions(ScreenRes, true))
+	{
+		for(const FScreenResolutionRHI& res : ScreenRes)
+		{
+			resolutions.Add(FString::FromInt(res.Width) + "x" + FString::FromInt(res.Height));
+		}
+	}
+	return resolutions;
+}

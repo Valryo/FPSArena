@@ -40,11 +40,11 @@ class FPSARENA_API AAbstract_Weapon : public AActor
 
 	/** Gun mesh: 1st person view (seen only by self) */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USkeletalMeshComponent* FP_Gun;
+		USkeletalMeshComponent* FP_Gun;
 
 	/** Location on gun mesh where projectiles should spawn. */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USkeletalMeshComponent* FP_SightSocket;
+		USkeletalMeshComponent* FP_SightSocket;
 
 public:	
 	// Sets default values for this actor's properties
@@ -57,7 +57,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 		TSubclassOf<class AAbstract_Projectile> ProjectileClass;
 
-	
 
 protected:
 	// Called when the game starts or when spawned
@@ -93,6 +92,8 @@ protected:
 
 	/** consume a ammo */
 	void UseAmmo();
+
+	
 
 	/** determines the actual weapon state */
 	void DetermineWeaponState();
@@ -132,6 +133,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 		FName MuzzleAttachPoint;
 
+	/** FX for muzzle flash */
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+		UParticleSystem* MuzzleFX;
+
+	/** spawned component for muzzle FX */
+	UPROPERTY(Transient)
+		UParticleSystemComponent* MuzzlePSC;
+
 	/** times in second between two consecutive shots */
 	float TimeBetweenShots;
 
@@ -146,6 +155,8 @@ protected:
 
 	float GetReloadDuration();
 
+	float GetImprovedAccuracy(float f);
+
 	int BurstCounter = 0;
 
 
@@ -153,6 +164,8 @@ protected:
 	//////////////////////////////////////////////////////////////////////////
 	// Weapon utils
 	FVector InitialRotation;
+
+	float HorizontalRecoil = 0.f;
 
 	float RecoveryX = 0.f, RecoveryY = 0.f;
 	float CurrentRecoveryX = 0.f, CurrentRecoveryY = 0.f;
@@ -202,6 +215,9 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopReload();
 
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerAddAmmo();
+
 	/** spawn projectile on server */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerFireProjectile(FVector Origin, FVector ShootDir);
@@ -223,101 +239,107 @@ protected:
 
 	/** Damage dealt by the projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		int32 Damage;
+		int32 Damage = 20;
 
 	/** Fire rate in rounds per minutes */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float FireRate;
+		float FireRate = 600;
 	
 	/** Time between two consecutive shot while burst firing */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float TimeBetweenShotBurstFire;
+		float TimeBetweenShotBurstFire = 0.05;
 
 	/** Time between two consecutive shot while burst firing */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float NumberBurstShot;
+		int32 NumberBurstShot = 3;
 
 	/** Projectile velocity in meters per second */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float ProjectileVelocity;
+		float ProjectileVelocity = 60.f;
 
 	/** Projectile LifeSpan in seconds */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		float ProjectileLifeSpan;
+		float ProjectileLifeSpan = 1.5f;
 
 	/** Class of the weapon : auto, semi-auto, burst */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
-		WeaponClass WeaponClass;
+		WeaponClass WeaponClass = WeaponClass::WC_Auto;
+
+	/** Headshot damage multiplier */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+		float HeadshotMultiplier = 2.f;
 
 	/** Reload time in seconds when there's still a bullet in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
-		float ShortReloadTime;
+		float ShortReloadTime = 1.f;
 
 	/** Reload time in seconds when there's no bullet in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
-		float LongReloadTime;
+		float LongReloadTime = 2.f;
 
 	/** Number of rounds in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		int MagazineSize;
+		int MagazineSize = 30;
 	
 	/** Amount of bullets left in the magazine */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
-	int CurrentAmmoInClip;
+		int CurrentAmmoInClip = 0;
 
 	/** Amount of bullet left in the reserve */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
-		int CurrentAmmoInReserve;
+		int CurrentAmmoInReserve = 0;
 	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		int MaxAmmo;
+		int MaxAmmo = 150;
+
+	/** Accuracy multiplier when aiming down the sight */
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy")
+		float AccuracyMultiplier = 2.f;
 
 	/** Base weapon spread (degrees) */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
-		float WeaponSpread;
+		float WeaponSpread = .5f;
 
 	/** Continuous firing: spread increment */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
-		float FiringSpreadIncrement;
+		float FiringSpreadIncrement = .25f;
 
 	/** Continuous firing: max increment */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
-		float FiringSpreadMax;
+		float FiringSpreadMax = 5.f;
 
 	/** Vertical recoil in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float VerticalRecoil;
-	
-	float HorizontalRecoil = 0.f;
+		float VerticalRecoil = .5f;
 
 	/** Horizontal recoil minimum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float HorizontalRecoilMin;
+		float HorizontalRecoilMin = .175f;
 	
 	/** Horizontal recoil maximum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float HorizontalRecoilMax;
+		float HorizontalRecoilMax = .175f;
 
 	/** Horizontal recoil tolerance */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float HorizontalTolerance;
+		float HorizontalTolerance = .5f;
 
 	/** Angle of recoil minimum  in degrees */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float AngleMin;
+		float AngleMin = 13.f;
 
 	/** Angle or recoil maximum in degrees */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float AngleMax;
+		float AngleMax = 15.f;
 
 	/** Recoil recovery delay in seconds */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float RecoilRecoveryDelay;
+		float RecoilRecoveryDelay = .1f;
 
 	/** Recoil recovery rate */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
-		float RecoilRecoveryRate;
+		float RecoilRecoveryRate = 1.f;
 
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
 		float Bloom;
@@ -371,6 +393,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* ReloadSound;
 
+	/** getting ammo sound sound */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* AddAmmoSound;
+
 	/** is fire sound looped? */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		bool LoopedFireSound = true;
@@ -398,5 +424,9 @@ public :
 	/** Fires a projectile. */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void FireWeapon();
+
+	/** add ammo to the reserve */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		void AddAmmo();
 
 };
