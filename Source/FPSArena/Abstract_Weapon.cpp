@@ -200,7 +200,7 @@ bool AAbstract_Weapon::CanReload() const
 	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoInReserve > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
-	return ((GotAmmo == true) && (StateOKToReload == true));
+	return ((GotAmmo == true) && (StateOKToReload == true) && !AimingDownSight);
 }
 
 FVector AAbstract_Weapon::GetCameraDamageStartLocation(const FVector& AimDir) const
