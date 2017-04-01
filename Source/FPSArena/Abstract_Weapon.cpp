@@ -424,15 +424,16 @@ void AAbstract_Weapon::ServerStopFire_Implementation()
 	StopFiring();
 }
 
-void AAbstract_Weapon::StartReloading_Implementation()
+void AAbstract_Weapon::StartReloading_Implementation(bool FromReplication)
 {
-	if (Role < ROLE_Authority)
+	if (!FromReplication && Role < ROLE_Authority)
 	{
 		ServerStartReload();
 	}
 
-	if (CanReload())
+	if (FromReplication || CanReload())
 	{
+		
 		APawn* MyPawn = Cast<APawn>(GetOwner());
 
 		PendingReload = true;
@@ -473,6 +474,23 @@ bool AAbstract_Weapon::ServerStartReload_Validate()
 void AAbstract_Weapon::ServerStartReload_Implementation()
 {
 	StartReloading();
+}
+
+void AAbstract_Weapon::ClientStartReload_Implementation()
+{
+	StartReloading();
+}
+
+void AAbstract_Weapon::OnRep_Reload()
+{
+	if (PendingReload)
+	{
+		StartReloading(true);
+	}
+	else
+	{
+		StopReloading();
+	}
 }
 
 bool AAbstract_Weapon::ServerStopReload_Validate()
@@ -605,7 +623,7 @@ void AAbstract_Weapon::OnBurstFinished()
 void AAbstract_Weapon::HandleFiring()
 {
 	APawn* MyPawn = Cast<APawn>(GetOwner());
-
+	
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
 		if (GetNetMode() != NM_DedicatedServer)
@@ -727,6 +745,7 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
 	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInReserve);
 	
 	DOREPLIFETIME_CONDITION(AAbstract_Weapon, BurstCounter, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AAbstract_Weapon, PendingReload, COND_SkipOwner);
 }
 
 UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
