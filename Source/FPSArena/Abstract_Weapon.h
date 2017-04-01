@@ -427,6 +427,6 @@ public :
 
 	/** add ammo to the reserve */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		void AddAmmo();
+		bool AddAmmo();
 
 };

@@ -201,7 +201,7 @@ bool AAbstract_Weapon::CanReload() const
 	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoInReserve > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
-	return ((GotAmmo == true) && (StateOKToReload == true) && !AimingDownSight);
+	return ((GotAmmo == true) && (StateOKToReload == true));
 }
 
 FVector AAbstract_Weapon::GetCameraDamageStartLocation(const FVector& AimDir) const
@@ -516,7 +516,7 @@ void AAbstract_Weapon::UseAmmo()
 	CurrentAmmoInClip--;
 }
 
-void AAbstract_Weapon::AddAmmo_Implementation()
+bool AAbstract_Weapon::AddAmmo_Implementation()
 {
 	if (Role < ROLE_Authority)
 	{
@@ -526,7 +526,11 @@ void AAbstract_Weapon::AddAmmo_Implementation()
 	if (CurrentAmmoInReserve < MaxAmmo)
 	{
 		CurrentAmmoInReserve += FMath::Min(MagazineSize, MaxAmmo - CurrentAmmoInReserve);
+
+		return true;
 	}
+
+	return false;
 }
 
 void AAbstract_Weapon::DetermineWeaponState()
