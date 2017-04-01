@@ -88,7 +88,8 @@ protected:
 	bool CanReload() const;
 
 	/** check if weapon can fire */
-	bool CanFire() const;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		bool CanFire() const;
 
 	/** consume a ammo */
 	void UseAmmo();
@@ -155,13 +156,20 @@ protected:
 
 	float GetReloadDuration();
 
-	int BurstCounter = 0;
+	float GetImprovedAccuracy(float f);
 
+	/** burst counter, used for replicating fire events to remote clients */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_BurstCounter)
+		int BurstCounter = 0;
 
+	UFUNCTION()
+		void OnRep_BurstCounter();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Weapon utils
 	FVector InitialRotation;
+
+	float HorizontalRecoil = 0.f;
 
 	float RecoveryX = 0.f, RecoveryY = 0.f;
 	float CurrentRecoveryX = 0.f, CurrentRecoveryY = 0.f;
@@ -287,7 +295,11 @@ protected:
 	
 	/** Number of ammunition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
-		int MaxAmmo = 120;
+		int MaxAmmo = 150;
+
+	/** Accuracy multiplier when aiming down the sight */
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy")
+		float AccuracyMultiplier = 2.f;
 
 	/** Base weapon spread (degrees) */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Spread")
@@ -304,8 +316,6 @@ protected:
 	/** Vertical recoil in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
 		float VerticalRecoil = .5f;
-	
-	float HorizontalRecoil = 0.f;
 
 	/** Horizontal recoil minimum in radians */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
@@ -386,10 +396,6 @@ protected:
 	/** reload sound */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* ReloadSound;
-
-	/** getting ammo sound sound */
-	UPROPERTY(EditDefaultsOnly, Category = Sound)
-		USoundCue* AddAmmoSound;
 
 	/** is fire sound looped? */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)

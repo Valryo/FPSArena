@@ -76,18 +76,16 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 
 	if (Role == ROLE_Authority)
 	{
-		APlayerController* PlayerController = Cast<APlayerController>(Instigator->GetController());
-		if (PlayerController != nullptr)
+		AController* Controller = Cast<AController>(Instigator->GetController());
+		if (Controller != nullptr)
 		{
 			if (OtherActor != nullptr)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, OtherComp->GetName());
-				
 				// Create a damage event  
 				TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
 				FDamageEvent DamageEvent(ValidDamageTypeClass);
 
-				OtherActor->TakeDamage(OtherComp->GetName().Compare("Sphere") ? Damage : Damage * HeadshotMultiplier, DamageEvent, PlayerController, this);
+				OtherActor->TakeDamage(OtherComp->GetName().Compare("Sphere") ? Damage : Damage * HeadshotMultiplier, DamageEvent, Controller, this);
 			}
 		}
 		

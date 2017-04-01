@@ -45,6 +45,7 @@ AAbstract_Weapon::AAbstract_Weapon()
 
 	CurrentAmmoInClip = MagazineSize;
 	CurrentAmmoInReserve = MaxAmmo;
+	BurstCounter = 0;
 
 	ShortReloadTime = 0.f;
 	LongReloadTime = 0.f;
@@ -101,7 +102,7 @@ void AAbstract_Weapon::Tick(float DeltaTime)
 			Fired = false;
 		}
 
-		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, VerticalRecoil, DeltaTime, 10.0f);
+		CurrentVerticalRecoil = FMath::FInterpTo(CurrentVerticalRecoil, GetImprovedAccuracy(VerticalRecoil), DeltaTime, 10.0f);
 		CurrentHorizontalRecoil = FMath::FInterpTo(CurrentHorizontalRecoil, TotalHorizontalRecoil, DeltaTime, 10.0f);
 
 		float recoilY = (TotalRecoilY + CurrentVerticalRecoil > VerticalRecoil) ? VerticalRecoil - TotalRecoilY : CurrentVerticalRecoil;
@@ -189,7 +190,7 @@ EWeapon::State AAbstract_Weapon::GetCurrentState() const
 	return EWeapon::State();
 }
 
-bool AAbstract_Weapon::CanFire() const
+bool AAbstract_Weapon::CanFire_Implementation() const
 {
 	bool bStateOKToFire = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 	return ((bStateOKToFire == true) && (PendingReload == false));
@@ -200,7 +201,7 @@ bool AAbstract_Weapon::CanReload() const
 	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoInReserve > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
-	return ((GotAmmo == true) && (StateOKToReload == true));
+	return ((GotAmmo == true) && (StateOKToReload == true) && !AimingDownSight);
 }
 
 FVector AAbstract_Weapon::GetCameraDamageStartLocation(const FVector& AimDir) const
@@ -292,8 +293,6 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 					ShootDir = AdjustedDir;
 				}
 			}
-			
-			BurstCounter++;
 
 			if (BurstCounter == NumberBurstShot && WeaponClass == WeaponClass::WC_Burst)
 			{
@@ -321,14 +320,14 @@ FVector AAbstract_Weapon::ComputeSpread(const FVector& ShootDir)
 	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentFiringSpread * 0.5f);
 
 	const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
-	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + FiringSpreadIncrement);
+	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + GetImprovedAccuracy(FiringSpreadIncrement));
 
 	return AimDir;
 }
 
 float AAbstract_Weapon::ComputeHorizontalRecoil()
 {
-	float FinalRecoilYaw = FMath::FRandRange(HorizontalRecoilMin, HorizontalRecoilMax);
+	float FinalRecoilYaw = FMath::FRandRange(GetImprovedAccuracy(HorizontalRecoilMin), GetImprovedAccuracy(HorizontalRecoilMax));
 	float RecoilAngle = FMath::FRandRange(AngleMin, AngleMax);
 
 	if (FGenericPlatformMath::Abs(HorizontalRecoil) < HorizontalTolerance)
@@ -527,8 +526,6 @@ void AAbstract_Weapon::AddAmmo_Implementation()
 	if (CurrentAmmoInReserve < MaxAmmo)
 	{
 		CurrentAmmoInReserve += FMath::Min(MagazineSize, MaxAmmo - CurrentAmmoInReserve);
-
-		PlayWeaponSound(AddAmmoSound);
 	}
 }
 
@@ -616,6 +613,8 @@ void AAbstract_Weapon::HandleFiring()
 		{
 			FireWeapon();
 			UseAmmo();
+
+			BurstCounter++;
 		}
 	}
 	else if (CanReload())
@@ -631,7 +630,10 @@ void AAbstract_Weapon::HandleFiring()
 		}
 
 		// stop weapon fire FX, but stay in Firing state
-		OnBurstFinished();
+		if (BurstCounter > 0)
+		{
+			OnBurstFinished();
+		}
 	}
 
 	if (MyPawn && MyPawn->IsLocallyControlled())
@@ -720,6 +722,7 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
     DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
 	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInReserve);
 	
+	DOREPLIFETIME_CONDITION(AAbstract_Weapon, BurstCounter, COND_SkipOwner);
 }
 
 UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
@@ -868,4 +871,21 @@ void AAbstract_Weapon::StopWeaponAnimation(const UAnimMontage& Animation)
 			MyPawn->StopAnimMontage(UseAnim);
 		}
 	}*/
+}
+
+float AAbstract_Weapon::GetImprovedAccuracy(float f)
+{
+	return (AimingDownSight ? f / AccuracyMultiplier : f);
+}
+
+void AAbstract_Weapon::OnRep_BurstCounter()
+{
+	if (BurstCounter > 0)
+	{
+		SimulateWeaponFire();
+	}
+	else
+	{
+		StopSimulatingWeaponFire();
+	}
 }
