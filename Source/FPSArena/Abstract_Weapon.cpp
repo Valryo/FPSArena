@@ -45,6 +45,7 @@ AAbstract_Weapon::AAbstract_Weapon()
 
 	CurrentAmmoInClip = MagazineSize;
 	CurrentAmmoInReserve = MaxAmmo;
+	BurstCounter = 0;
 
 	ShortReloadTime = 0.f;
 	LongReloadTime = 0.f;
@@ -292,8 +293,6 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 					ShootDir = AdjustedDir;
 				}
 			}
-			
-			BurstCounter++;
 
 			if (BurstCounter == NumberBurstShot && WeaponClass == WeaponClass::WC_Burst)
 			{
@@ -614,6 +613,8 @@ void AAbstract_Weapon::HandleFiring()
 		{
 			FireWeapon();
 			UseAmmo();
+
+			BurstCounter++;
 		}
 	}
 	else if (CanReload())
@@ -629,7 +630,10 @@ void AAbstract_Weapon::HandleFiring()
 		}
 
 		// stop weapon fire FX, but stay in Firing state
-		OnBurstFinished();
+		if (BurstCounter > 0)
+		{
+			OnBurstFinished();
+		}
 	}
 
 	if (MyPawn && MyPawn->IsLocallyControlled())
@@ -718,6 +722,7 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
     DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
 	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInReserve);
 	
+	DOREPLIFETIME_CONDITION(AAbstract_Weapon, BurstCounter, COND_SkipOwner);
 }
 
 UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
@@ -871,4 +876,16 @@ void AAbstract_Weapon::StopWeaponAnimation(const UAnimMontage& Animation)
 float AAbstract_Weapon::GetImprovedAccuracy(float f)
 {
 	return (AimingDownSight ? f / AccuracyMultiplier : f);
+}
+
+void AAbstract_Weapon::OnRep_BurstCounter()
+{
+	if (BurstCounter > 0)
+	{
+		SimulateWeaponFire();
+	}
+	else
+	{
+		StopSimulatingWeaponFire();
+	}
 }

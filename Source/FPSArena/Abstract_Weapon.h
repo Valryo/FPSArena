@@ -158,9 +158,12 @@ protected:
 
 	float GetImprovedAccuracy(float f);
 
-	int BurstCounter = 0;
+	/** burst counter, used for replicating fire events to remote clients */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_BurstCounter)
+		int BurstCounter = 0;
 
-
+	UFUNCTION()
+		void OnRep_BurstCounter();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Weapon utils
