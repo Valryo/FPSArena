@@ -189,7 +189,7 @@ EWeapon::State AAbstract_Weapon::GetCurrentState() const
 	return EWeapon::State();
 }
 
-bool AAbstract_Weapon::CanFire() const
+bool AAbstract_Weapon::CanFire_Implementation() const
 {
 	bool bStateOKToFire = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 	return ((bStateOKToFire == true) && (PendingReload == false));
@@ -527,8 +527,6 @@ void AAbstract_Weapon::AddAmmo_Implementation()
 	if (CurrentAmmoInReserve < MaxAmmo)
 	{
 		CurrentAmmoInReserve += FMath::Min(MagazineSize, MaxAmmo - CurrentAmmoInReserve);
-
-		PlayWeaponSound(AddAmmoSound);
 	}
 }
 

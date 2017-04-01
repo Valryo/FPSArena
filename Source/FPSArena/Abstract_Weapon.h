@@ -88,7 +88,8 @@ protected:
 	bool CanReload() const;
 
 	/** check if weapon can fire */
-	bool CanFire() const;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		bool CanFire() const;
 
 	/** consume a ammo */
 	void UseAmmo();
@@ -392,10 +393,6 @@ protected:
 	/** reload sound */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* ReloadSound;
-
-	/** getting ammo sound sound */
-	UPROPERTY(EditDefaultsOnly, Category = Sound)
-		USoundCue* AddAmmoSound;
 
 	/** is fire sound looped? */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
