@@ -65,7 +65,10 @@ protected:
 	virtual void Tick(float DeltaTime);
 
 	bool AimingDownSight;
-	bool PendingReload;
+
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_Reload)
+		bool PendingReload;
+
 	bool IsEquipped;
 	bool PendingEquip;
 	bool WantsToFire;
@@ -74,6 +77,9 @@ protected:
 	bool Fired;
 	bool Recovering;
 	
+
+	UFUNCTION()
+		void OnRep_Reload();
 
 	/** current weapon state */
 	EWeapon::State CurrentState;
@@ -213,7 +219,7 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopFire();
 
-	UFUNCTION(reliable, server, WithValidation)
+	UFUNCTION(Reliable, Server, WithValidation)
 		void ServerStartReload();
 
 	UFUNCTION(reliable, server, WithValidation)
@@ -413,10 +419,14 @@ public :
 		void StopFiring();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		void StartReloading();
+		void StartReloading(bool FromReplication = false);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void StopReloading();
+
+	/** trigger reload from server */
+	UFUNCTION(Reliable, Client)
+		void ClientStartReload();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		bool ToggleAim();
@@ -427,6 +437,6 @@ public :
 
 	/** add ammo to the reserve */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		void AddAmmo();
+		bool AddAmmo();
 
 };
