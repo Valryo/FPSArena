@@ -65,7 +65,10 @@ protected:
 	virtual void Tick(float DeltaTime);
 
 	bool AimingDownSight;
-	bool PendingReload;
+
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_Reload)
+		bool PendingReload;
+
 	bool IsEquipped;
 	bool PendingEquip;
 	bool WantsToFire;
@@ -74,6 +77,9 @@ protected:
 	bool Fired;
 	bool Recovering;
 	
+
+	UFUNCTION()
+		void OnRep_Reload();
 
 	/** current weapon state */
 	EWeapon::State CurrentState;
@@ -88,7 +94,8 @@ protected:
 	bool CanReload() const;
 
 	/** check if weapon can fire */
-	bool CanFire() const;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
+		bool CanFire() const;
 
 	/** consume a ammo */
 	void UseAmmo();
@@ -157,9 +164,12 @@ protected:
 
 	float GetImprovedAccuracy(float f);
 
-	int BurstCounter = 0;
+	/** burst counter, used for replicating fire events to remote clients */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_BurstCounter)
+		int BurstCounter = 0;
 
-
+	UFUNCTION()
+		void OnRep_BurstCounter();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Weapon utils
@@ -209,7 +219,7 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopFire();
 
-	UFUNCTION(reliable, server, WithValidation)
+	UFUNCTION(Reliable, Server, WithValidation)
 		void ServerStartReload();
 
 	UFUNCTION(reliable, server, WithValidation)
@@ -393,10 +403,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* ReloadSound;
 
-	/** getting ammo sound sound */
-	UPROPERTY(EditDefaultsOnly, Category = Sound)
-		USoundCue* AddAmmoSound;
-
 	/** is fire sound looped? */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		bool LoopedFireSound = true;
@@ -413,10 +419,14 @@ public :
 		void StopFiring();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		void StartReloading();
+		void StartReloading(bool FromReplication = false);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		void StopReloading();
+
+	/** trigger reload from server */
+	UFUNCTION(Reliable, Client)
+		void ClientStartReload();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
 		bool ToggleAim();
@@ -427,6 +437,6 @@ public :
 
 	/** add ammo to the reserve */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		void AddAmmo();
+		bool AddAmmo();
 
 };

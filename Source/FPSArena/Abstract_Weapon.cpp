@@ -45,6 +45,7 @@ AAbstract_Weapon::AAbstract_Weapon()
 
 	CurrentAmmoInClip = MagazineSize;
 	CurrentAmmoInReserve = MaxAmmo;
+	BurstCounter = 0;
 
 	ShortReloadTime = 0.f;
 	LongReloadTime = 0.f;
@@ -189,7 +190,7 @@ EWeapon::State AAbstract_Weapon::GetCurrentState() const
 	return EWeapon::State();
 }
 
-bool AAbstract_Weapon::CanFire() const
+bool AAbstract_Weapon::CanFire_Implementation() const
 {
 	bool bStateOKToFire = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 	return ((bStateOKToFire == true) && (PendingReload == false));
@@ -200,7 +201,7 @@ bool AAbstract_Weapon::CanReload() const
 	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoInReserve > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
-	return ((GotAmmo == true) && (StateOKToReload == true) && !AimingDownSight);
+	return ((GotAmmo == true) && (StateOKToReload == true));
 }
 
 FVector AAbstract_Weapon::GetCameraDamageStartLocation(const FVector& AimDir) const
@@ -292,8 +293,6 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 					ShootDir = AdjustedDir;
 				}
 			}
-			
-			BurstCounter++;
 
 			if (BurstCounter == NumberBurstShot && WeaponClass == WeaponClass::WC_Burst)
 			{
@@ -425,15 +424,16 @@ void AAbstract_Weapon::ServerStopFire_Implementation()
 	StopFiring();
 }
 
-void AAbstract_Weapon::StartReloading_Implementation()
+void AAbstract_Weapon::StartReloading_Implementation(bool FromReplication)
 {
-	if (Role < ROLE_Authority)
+	if (!FromReplication && Role < ROLE_Authority)
 	{
 		ServerStartReload();
 	}
 
-	if (CanReload())
+	if (FromReplication || CanReload())
 	{
+		
 		APawn* MyPawn = Cast<APawn>(GetOwner());
 
 		PendingReload = true;
@@ -474,6 +474,23 @@ bool AAbstract_Weapon::ServerStartReload_Validate()
 void AAbstract_Weapon::ServerStartReload_Implementation()
 {
 	StartReloading();
+}
+
+void AAbstract_Weapon::ClientStartReload_Implementation()
+{
+	StartReloading();
+}
+
+void AAbstract_Weapon::OnRep_Reload()
+{
+	if (PendingReload)
+	{
+		StartReloading(true);
+	}
+	else
+	{
+		StopReloading();
+	}
 }
 
 bool AAbstract_Weapon::ServerStopReload_Validate()
@@ -517,7 +534,7 @@ void AAbstract_Weapon::UseAmmo()
 	CurrentAmmoInClip--;
 }
 
-void AAbstract_Weapon::AddAmmo_Implementation()
+bool AAbstract_Weapon::AddAmmo_Implementation()
 {
 	if (Role < ROLE_Authority)
 	{
@@ -528,8 +545,10 @@ void AAbstract_Weapon::AddAmmo_Implementation()
 	{
 		CurrentAmmoInReserve += FMath::Min(MagazineSize, MaxAmmo - CurrentAmmoInReserve);
 
-		PlayWeaponSound(AddAmmoSound);
+		return true;
 	}
+
+	return false;
 }
 
 void AAbstract_Weapon::DetermineWeaponState()
@@ -604,7 +623,7 @@ void AAbstract_Weapon::OnBurstFinished()
 void AAbstract_Weapon::HandleFiring()
 {
 	APawn* MyPawn = Cast<APawn>(GetOwner());
-
+	
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
 		if (GetNetMode() != NM_DedicatedServer)
@@ -616,6 +635,8 @@ void AAbstract_Weapon::HandleFiring()
 		{
 			FireWeapon();
 			UseAmmo();
+
+			BurstCounter++;
 		}
 	}
 	else if (CanReload())
@@ -631,7 +652,10 @@ void AAbstract_Weapon::HandleFiring()
 		}
 
 		// stop weapon fire FX, but stay in Firing state
-		OnBurstFinished();
+		if (BurstCounter > 0)
+		{
+			OnBurstFinished();
+		}
 	}
 
 	if (MyPawn && MyPawn->IsLocallyControlled())
@@ -720,6 +744,8 @@ void AAbstract_Weapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & 
     DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInClip);
 	DOREPLIFETIME(AAbstract_Weapon, CurrentAmmoInReserve);
 	
+	DOREPLIFETIME_CONDITION(AAbstract_Weapon, BurstCounter, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AAbstract_Weapon, PendingReload, COND_SkipOwner);
 }
 
 UAudioComponent* AAbstract_Weapon::PlayWeaponSound(USoundCue* Sound)
@@ -873,4 +899,16 @@ void AAbstract_Weapon::StopWeaponAnimation(const UAnimMontage& Animation)
 float AAbstract_Weapon::GetImprovedAccuracy(float f)
 {
 	return (AimingDownSight ? f / AccuracyMultiplier : f);
+}
+
+void AAbstract_Weapon::OnRep_BurstCounter()
+{
+	if (BurstCounter > 0)
+	{
+		SimulateWeaponFire();
+	}
+	else
+	{
+		StopSimulatingWeaponFire();
+	}
 }
