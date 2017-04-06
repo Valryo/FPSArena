@@ -246,6 +246,9 @@ public:
 
 
 protected:
+	/** Damage dealt by the projectile */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+		FString Name;
 
 	/** Damage dealt by the projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
