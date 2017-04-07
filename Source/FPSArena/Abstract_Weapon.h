@@ -252,6 +252,10 @@ protected:
 
 	/** Damage dealt by the projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+		uint8 NbProjectiles = 1;
+
+	/** Damage dealt by the projectile */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
 		int32 Damage = 20;
 
 	/** Fire rate in rounds per minutes */
