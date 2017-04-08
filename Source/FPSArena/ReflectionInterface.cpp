@@ -15,6 +15,6 @@ TArray<TSubclassOf<AAbstract_Weapon>> UReflectionInterface::getAllWeaponClasses(
 			WeaponsClasses.Add(*It);
 		}
 	}
-
+	
 	return WeaponsClasses;
 }
