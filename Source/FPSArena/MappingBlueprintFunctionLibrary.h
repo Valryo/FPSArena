@@ -14,6 +14,9 @@ class FPSARENA_API UMappingBlueprintFunctionLibrary : public UBlueprintFunctionL
 public:
 	GENERATED_BODY()
 
+		UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Mapping")
+		static float getMouseSentitivity();
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Mapping")
 		static TArray<FInputActionKeyMapping> getActions();
 
@@ -42,7 +45,7 @@ public:
 		static FInputAxisKeyMapping setAxis(FInputAxisKeyMapping Axis, FKey Key);
 
 	UFUNCTION(BlueprintCallable, Category = "Mapping")
-		static FString saveMapping(TArray<FInputActionKeyMapping> Actions, TArray<FInputAxisKeyMapping> Axis);
+		static FString saveMapping(float sensitivity, TArray<FInputActionKeyMapping> Actions, TArray<FInputAxisKeyMapping> Axis);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Display")
 		static TArray<FString> getSupportedResolutionsString();
