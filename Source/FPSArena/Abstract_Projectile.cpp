@@ -76,20 +76,23 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 
 	if (Role == ROLE_Authority)
 	{
-		AController* Controller = Cast<AController>(Instigator->GetController());
-		if (Controller != nullptr)
+		if (!OtherActor->IsA(AAbstract_Projectile::StaticClass()))
 		{
-			if (OtherActor != nullptr)
+			AController* Controller = Cast<AController>(Instigator->GetController());
+			if (Controller != nullptr)
 			{
-				// Create a damage event  
-				TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
-				FDamageEvent DamageEvent(ValidDamageTypeClass);
+				if (OtherActor != nullptr)
+				{
+					// Create a damage event  
+					TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
+					FDamageEvent DamageEvent(ValidDamageTypeClass);
 
-				OtherActor->TakeDamage(OtherComp->GetName().Compare("Sphere") ? Damage : Damage * HeadshotMultiplier, DamageEvent, Controller, this);
+					OtherActor->TakeDamage(OtherComp->GetName().Compare("Sphere") ? Damage : Damage * HeadshotMultiplier, DamageEvent, Controller, this);
+				}
 			}
+
+			DisableAndDestroy();
 		}
-		
-		DisableAndDestroy();
 	}
 
 	// play FX locally
