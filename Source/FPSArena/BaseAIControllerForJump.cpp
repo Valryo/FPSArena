@@ -5,9 +5,11 @@
 #include "BaseAIControllerForJump.h"
 
 
-
 ABaseAIControllerForJump::ABaseAIControllerForJump(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPathFollowingComponentForJump>(TEXT("PathFollowingComponent")))
 {
+bWantsPlayerState = true;
+
 }
+
 
