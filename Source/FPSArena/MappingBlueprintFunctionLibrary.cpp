@@ -3,6 +3,19 @@
 #include "FPSArena.h"
 #include "MappingBlueprintFunctionLibrary.h"
 
+float UMappingBlueprintFunctionLibrary::getMouseSentitivity() {
+	float sensitivity = 50;
+	UInputSettings* Settings = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
+	TArray<FInputAxisKeyMapping> map = const_cast<UInputSettings*>(Settings)->AxisMappings;
+	for (int32 Index = 0; Index < map.Num(); ++Index) {
+		if (map[Index].AxisName.ToString().Compare("LookUp") == 0) {
+			sensitivity = -50 * map[Index].Scale;
+			break;
+		}
+	}
+	return sensitivity;
+}
+
 TArray<FInputActionKeyMapping> UMappingBlueprintFunctionLibrary::getActions() {
 	
 	UInputSettings* Settings = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
@@ -15,8 +28,14 @@ TArray<FInputAxisKeyMapping> UMappingBlueprintFunctionLibrary::getAxis() {
 
 	UInputSettings* Settings = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
 	TArray<FInputAxisKeyMapping> map = const_cast<UInputSettings*>(Settings)->AxisMappings;
-
-	return map;
+	TArray<FInputAxisKeyMapping> toReturn;
+	for (int32 Index = 0; Index < map.Num(); ++Index) {
+		FString name = map[Index].AxisName.ToString();
+		if (name.Compare("LookUp") != 0 && name.Compare("LookUpRate") != 0 && name.Compare("Turn") != 0 && name.Compare("TurnRate") != 0) {
+			toReturn.Add(map[Index]);
+		}
+	}
+	return toReturn;
 }
 
 FString UMappingBlueprintFunctionLibrary::ActionToString(FInputActionKeyMapping Action) {
@@ -76,7 +95,7 @@ FInputAxisKeyMapping UMappingBlueprintFunctionLibrary::setAxis(FInputAxisKeyMapp
 	return Axis;
 }
 
-FString UMappingBlueprintFunctionLibrary::saveMapping(TArray<FInputActionKeyMapping> Actions, TArray<FInputAxisKeyMapping> Axis) {
+FString UMappingBlueprintFunctionLibrary::saveMapping(float sensitivity, TArray<FInputActionKeyMapping> Actions, TArray<FInputAxisKeyMapping> Axis) {
 
 	FString show = "";
 
@@ -97,6 +116,22 @@ FString UMappingBlueprintFunctionLibrary::saveMapping(TArray<FInputActionKeyMapp
 
 	// Axis Update
 	TArray<FInputAxisKeyMapping> oldAxis = const_cast<UInputSettings*>(Settings)->AxisMappings;
+	for (int32 Index = 0; Index < oldAxis.Num(); ++Index) {
+		if (oldAxis[Index].AxisName.ToString().Compare("LookUp") == 0) {
+			oldAxis[Index].Scale = -sensitivity / 50;
+			Axis.Add(oldAxis[Index]);
+		}
+		if (oldAxis[Index].AxisName.ToString().Compare("Turn") == 0) {
+			oldAxis[Index].Scale = sensitivity / 50;
+			Axis.Add(oldAxis[Index]);
+		}
+		if (oldAxis[Index].AxisName.ToString().Compare("TurnRate") == 0) {
+			Axis.Add(oldAxis[Index]);
+		}
+		if (oldAxis[Index].AxisName.ToString().Compare("LookUpRate") == 0) {
+			Axis.Add(oldAxis[Index]);
+		}
+	}
 	for (int32 Index = 0; Index < oldAxis.Num(); ++Index) {
 		const_cast<UInputSettings*>(Settings)->RemoveAxisMapping(oldAxis[Index]);
 	}

@@ -155,8 +155,8 @@ void AAbstract_Weapon::Tick(float DeltaTime)
 		
 		TotalRecoveryY += CurrentRecoveryY;
 		TotalRecoveryX += CurrentRecoveryX;
-		
-		if (TotalRecoveryY > RecoveryY && TotalRecoveryX > RecoveryX)
+
+		if (TotalRecoveryY >= RecoveryY && TotalRecoveryX >= RecoveryX)
 		{
 			Recovering = false;
 			CurrentRecoveryY = 0.f;
@@ -300,14 +300,18 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				StopFiring();
 			}
 
-			// Spread
-			FVector AimDir = ComputeSpread(ShootDir);
-
 			// Recoil
 			TotalHorizontalRecoil = ComputeHorizontalRecoil();
+			
+			for (int i = 0; i < NbProjectiles; i++)
+			{
+				// Spread
+				FVector AimDir = ComputeSpread(ShootDir);
 
-			// Spawn projectile on the server
-			ServerFireProjectile(Origin, AimDir);
+				// Spawn projectile on the server
+				ServerFireProjectile(Origin, AimDir);
+			}
+			
 			Fired = true;
 		}
 	}
@@ -321,7 +325,7 @@ FVector AAbstract_Weapon::ComputeSpread(const FVector& ShootDir)
 
 	const FVector AimDir = WeaponRandomStream.VRandCone(ShootDir, ConeHalfAngle, ConeHalfAngle);
 	CurrentFiringSpread = FMath::Min(FiringSpreadMax, CurrentFiringSpread + GetImprovedAccuracy(FiringSpreadIncrement));
-
+	
 	return AimDir;
 }
 
@@ -358,10 +362,9 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 	{
 		Projectile->Instigator = Instigator;
 		Projectile->SetOwner(this);
-		Projectile->InitVelocity(ProjectileVelocity * 10);
 		Projectile->InitProjectileProperties(Damage, HeadshotMultiplier, ProjectileVelocity * 100, ProjectileLifeSpan);
 		Projectile->SetOrigin(Origin);
-
+		
 		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTM);
 	}
 }
@@ -448,7 +451,7 @@ void AAbstract_Weapon::StartReloading_Implementation(bool FromReplication)
 			GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &AAbstract_Weapon::ReloadWeapon, reloadTime, false);
 		}
 
-		if (MyPawn->IsLocallyControlled())
+		if (MyPawn && MyPawn->IsLocallyControlled())
 		{
 			PlayWeaponSound(ReloadSound);
 		}
@@ -606,13 +609,14 @@ void AAbstract_Weapon::OnBurstFinished()
 {
 	GetWorldTimerManager().ClearTimer(RefireTimerHandle);
 	Refiring = false;
+	Bursting = false;
 	BurstCounter = 0;
 	CurrentFiringSpread = WeaponSpread;
 	HorizontalRecoil = 0.f;
 	TotalHorizontalRecoil = 0.f;
 
 	GetWorldTimerManager().SetTimer(TimerHandle_StartRecover, this, &AAbstract_Weapon::StartRecovering, RecoilRecoveryDelay, false);
-
+	
 	// stop firing FX locally, unless it's a dedicated server
 	if (GetNetMode() != NM_DedicatedServer)
 	{
@@ -633,10 +637,9 @@ void AAbstract_Weapon::HandleFiring()
 
 		if (MyPawn && MyPawn->IsLocallyControlled())
 		{
-			FireWeapon();
-			UseAmmo();
-
 			BurstCounter++;
+			FireWeapon();
+			UseAmmo();	
 		}
 	}
 	else if (CanReload())
@@ -680,9 +683,12 @@ void AAbstract_Weapon::HandleFiring()
 			RefireTime = TimeBetweenShots;
 			break;
 		case WeaponClass::WC_Burst:
-			Refiring = CurrentState == EWeapon::Firing && BurstCounter < NumberBurstShot;
-			RefireTime = TimeBetweenShotBurstFire;
-			Bursting = true;
+			if (BurstCounter < NumberBurstShot)
+			{
+				Refiring = CurrentState == EWeapon::Firing;
+				RefireTime = TimeBetweenShotBurstFire;
+				Bursting = true;
+			}
 			break;
 		case WeaponClass::WC_SemiAuto:
 			Refiring = false;
