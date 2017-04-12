@@ -451,7 +451,7 @@ void AAbstract_Weapon::StartReloading_Implementation(bool FromReplication)
 			GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &AAbstract_Weapon::ReloadWeapon, reloadTime, false);
 		}
 
-		if (MyPawn->IsLocallyControlled())
+		if (MyPawn && MyPawn->IsLocallyControlled())
 		{
 			PlayWeaponSound(ReloadSound);
 		}
