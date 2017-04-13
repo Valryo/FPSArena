@@ -164,3 +164,11 @@ TArray<FString> UMappingBlueprintFunctionLibrary::getSupportedResolutionsString(
 	}
 	return resolutions;
 }
+
+TArray<FMyScoreTab> UMappingBlueprintFunctionLibrary::sortTableByScore(TArray<FMyScoreTab> tableau)
+{
+	tableau.Sort();
+	return tableau;
+}
+
+

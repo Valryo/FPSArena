@@ -8,6 +8,28 @@
 /**
  * 
  */
+USTRUCT(BlueprintType)
+struct FMyScoreTab
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(BlueprintReadWrite, Category = "Score")
+		int32 Score;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Score")
+		FString Name;
+
+	FORCEINLINE bool operator<(const FMyScoreTab &Other) const
+	{
+		return Score < Other.Score;
+	}
+
+	FORCEINLINE bool operator==(const FMyScoreTab &Other) const
+	{
+		return Score == Other.Score;
+	}
+};
+
 UCLASS()
 class FPSARENA_API UMappingBlueprintFunctionLibrary : public UBlueprintFunctionLibrary
 {
@@ -49,6 +71,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Display")
 		static TArray<FString> getSupportedResolutionsString();
+
+	UFUNCTION(BlueprintCallable, Category = "Score|Array")
+		static TArray<FMyScoreTab> sortTableByScore(TArray<FMyScoreTab> tableau);
 
 private:
 };
