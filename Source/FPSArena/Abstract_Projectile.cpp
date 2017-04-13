@@ -85,7 +85,12 @@ void AAbstract_Projectile::OnImpact(UPrimitiveComponent* OverlappedComp, AActor*
 				{
 					// Create a damage event  
 					TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
-					FDamageEvent DamageEvent(ValidDamageTypeClass);
+					//FDamageEvent DamageEvent(ValidDamageTypeClass);
+
+					FPointDamageEvent DamageEvent;
+					DamageEvent.HitInfo = SweepResult;
+					DamageEvent.ShotDirection = MovementComp->Velocity;
+					DamageEvent.Damage = Damage;
 
 					OtherActor->TakeDamage(OtherComp->GetName().Compare("Sphere") ? Damage : Damage * HeadshotMultiplier, DamageEvent, Controller, this);
 				}
