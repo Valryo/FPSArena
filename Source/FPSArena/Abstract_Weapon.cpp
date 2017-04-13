@@ -299,6 +299,10 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				Bursting = false;
 				StopFiring();
 			}
+			else if(WeaponClass == WeaponClass::WC_SemiAuto)
+			{
+				//StopFiring();
+			}
 
 			// Recoil
 			TotalHorizontalRecoil = ComputeHorizontalRecoil();
@@ -586,11 +590,14 @@ void AAbstract_Weapon::DetermineWeaponState()
 
 void AAbstract_Weapon::OnBurstStarted()
 {
-	InitialRotation = GetCameraAim();
 	RecoveryX = 0.f;
 	RecoveryY = 0.f;
 
 	Recovering = false;
+	BurstCounter = 0;
+	CurrentFiringSpread = WeaponSpread;
+	HorizontalRecoil = 0.f;
+	TotalHorizontalRecoil = 0.f;
 
 	// start firing, can be delayed to satisfy TimeBetweenShots
 	const float GameTime = GetWorld()->GetTimeSeconds();
@@ -610,18 +617,10 @@ void AAbstract_Weapon::OnBurstFinished()
 	GetWorldTimerManager().ClearTimer(RefireTimerHandle);
 	Refiring = false;
 	Bursting = false;
-	BurstCounter = 0;
-	CurrentFiringSpread = WeaponSpread;
-	HorizontalRecoil = 0.f;
-	TotalHorizontalRecoil = 0.f;
 
 	GetWorldTimerManager().SetTimer(TimerHandle_StartRecover, this, &AAbstract_Weapon::StartRecovering, RecoilRecoveryDelay, false);
 	
-	// stop firing FX locally, unless it's a dedicated server
-	if (GetNetMode() != NM_DedicatedServer)
-	{
-		StopSimulatingWeaponFire();
-	}
+	StopSimulatingWeaponFire();
 }
 
 void AAbstract_Weapon::HandleFiring()
@@ -630,10 +629,7 @@ void AAbstract_Weapon::HandleFiring()
 	
 	if (CurrentAmmoInClip > 0 && CanFire())
 	{
-		if (GetNetMode() != NM_DedicatedServer)
-		{
-			SimulateWeaponFire();
-		}
+		SimulateWeaponFire();
 
 		if (MyPawn && MyPawn->IsLocallyControlled())
 		{
@@ -781,43 +777,11 @@ void AAbstract_Weapon::SimulateWeaponFire()
 
 	if (MuzzleFX)
 	{
-		if (MuzzlePSC == NULL)
-		{
-			//FP_Gun->GetSocketLocation(MuzzleAttachPoint);
-			//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FP_Gun->GetSocketLocation(MuzzleAttachPoint).ToString());
+		FVector location = FP_Gun->GetSocketLocation(MuzzleAttachPoint);
+		FRotator rotation = GetActorRotation();
 
-			//MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, FP_Gun, MuzzleAttachPoint);
-			MuzzlePSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFX, FP_Gun->GetSocketTransform(MuzzleAttachPoint));
-
-			//// Split screen requires we create 2 effects. One that we see and one that the other player sees.
-			//if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
-			//{
-			//	AController* PlayerCon = MyPawn->GetController();
-			//	if (PlayerCon != NULL)
-			//	{
-			//		Mesh1P->GetSocketLocation(MuzzleAttachPoint);
-			//		MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh1P, MuzzleAttachPoint);
-			//		MuzzlePSC->bOwnerNoSee = false;
-			//		MuzzlePSC->bOnlyOwnerSee = true;
-
-			//		Mesh3P->GetSocketLocation(MuzzleAttachPoint);
-			//		MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
-			//		MuzzlePSCSecondary->bOwnerNoSee = true;
-			//		MuzzlePSCSecondary->bOnlyOwnerSee = false;
-			//	}
-			//}
-			//else
-			//{
-			//	MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
-			//}
-		}
+		MuzzlePSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFX, location, rotation);
 	}
-
-	//if (!bLoopedFireAnim || !bPlayingFireAnim)
-	//{
-	//	PlayWeaponAnimation(FireAnim);
-	//	bPlayingFireAnim = true;
-	//}
 	
 	if (LoopedFireSound)
 	{
@@ -839,25 +803,6 @@ void AAbstract_Weapon::StopSimulatingWeaponFire()
 		MuzzlePSC->DeactivateSystem();
 		MuzzlePSC = NULL;
 	}
-	//if (bLoopedMuzzleFX)
-	//{
-	//	if (MuzzlePSC != NULL)
-	//	{
-	//		MuzzlePSC->DeactivateSystem();
-	//		MuzzlePSC = NULL;
-	//	}
-	//	if (MuzzlePSCSecondary != NULL)
-	//	{
-	//		MuzzlePSCSecondary->DeactivateSystem();
-	//		MuzzlePSCSecondary = NULL;
-	//	}
-	//}
-
-	//if (bLoopedFireAnim && bPlayingFireAnim)
-	//{
-	//	StopWeaponAnimation(FireAnim);
-	//	bPlayingFireAnim = false;
-	//}
 
 	if (FireAC)
 	{

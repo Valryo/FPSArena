@@ -173,8 +173,6 @@ protected:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Weapon utils
-	FVector InitialRotation;
-
 	float HorizontalRecoil = 0.f;
 
 	float RecoveryX = 0.f, RecoveryY = 0.f;
