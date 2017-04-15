@@ -46,6 +46,9 @@ class FPSARENA_API AAbstract_Weapon : public AActor
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		USkeletalMeshComponent* FP_SightSocket;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+		UCameraComponent* Camera;
+
 public:	
 	// Sets default values for this actor's properties
 	AAbstract_Weapon();
@@ -135,6 +138,9 @@ protected:
 
 	/** last time the weapon fired */
 	float LastFireTime;
+
+	UPROPERTY(EditDefaultsOnly, Category = Camera)
+		FName CameraAttachPoint;
 
 	/** name of bone/socket for muzzle in weapon mesh */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
@@ -414,7 +420,7 @@ protected:
 
 	/** is fire sound looped? */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
-		bool LoopedFireSound = true;
+		bool LoopedFireSound = false;
 
 	/** reload animations */
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
