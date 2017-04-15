@@ -66,7 +66,7 @@ void AAbstract_Weapon::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	
 	CurrentFiringSpread = WeaponSpread;
-	Camera->AttachTo(FP_Gun, CameraAttachPoint, EAttachLocation::SnapToTarget);
+	Camera->AttachToComponent(FP_Gun, FAttachmentTransformRules::SnapToTargetNotIncludingScale, CameraAttachPoint);
 }
 
 void AAbstract_Weapon::BeginPlay()
@@ -786,17 +786,7 @@ void AAbstract_Weapon::SimulateWeaponFire()
 		MuzzlePSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFX, location, rotation);
 	}
 	
-	if (LoopedFireSound)
-	{
-		if (FireAC == NULL)
-		{
-			FireAC = PlayWeaponSound(FireLoopSound);
-		}
-	}
-	else
-	{
-		PlayWeaponSound(FireSound);
-	}
+	PlayWeaponSound(FireSound);
 }
 
 void AAbstract_Weapon::StopSimulatingWeaponFire()
@@ -805,14 +795,6 @@ void AAbstract_Weapon::StopSimulatingWeaponFire()
 	{
 		MuzzlePSC->DeactivateSystem();
 		MuzzlePSC = NULL;
-	}
-
-	if (FireAC)
-	{
-		FireAC->FadeOut(0.1f, 0.0f);
-		FireAC = NULL;
-
-		PlayWeaponSound(FireFinishSound);
 	}
 }
 
