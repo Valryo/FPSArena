@@ -33,6 +33,16 @@ enum class WeaponClass : uint8
 	WC_Burst	UMETA(DisplayName = "Burst Firing")
 };
 
+UENUM(BlueprintType)
+enum class WeaponType : uint8
+{
+	WC_LMG		UMETA(DisplayName = "LMG"),
+	WC_SMG		UMETA(DisplayName = "SMG"),
+	WC_AR		UMETA(DisplayName = "Assault Rifle"),
+	WC_Carbine	UMETA(DisplayName = "Carbine"),
+	WC_Shotgun	UMETA(DisplayName = "Shotgun")
+};
+
 UCLASS(abstract)
 class FPSARENA_API AAbstract_Weapon : public AActor
 {
@@ -255,7 +265,7 @@ protected:
 		FString Name;
 
 	/** Weapon description */
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		FString Description;
 
 	/** Damage dealt by the projectile */
@@ -263,11 +273,11 @@ protected:
 		uint8 NbProjectiles = 1;
 
 	/** Damage dealt by the projectile */
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		int32 Damage = 20;
 
 	/** Fire rate in rounds per minutes */
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		float FireRate = 600;
 	
 	/** Time between two consecutive shot while burst firing */
@@ -279,7 +289,7 @@ protected:
 		int32 NumberBurstShot = 3;
 
 	/** Projectile velocity in meters per second */
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		float ProjectileVelocity = 60.f;
 
 	/** Projectile LifeSpan in seconds */
@@ -287,23 +297,31 @@ protected:
 		float ProjectileLifeSpan = 1.5f;
 
 	/** Class of the weapon : auto, semi-auto, burst */
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		WeaponClass WeaponClass = WeaponClass::WC_Auto;
 
+	/** Class of the weapon : auto, semi-auto, burst */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
+		WeaponType WeaponType = WeaponType::WC_AR;
+	
 	/** Headshot damage multiplier */
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		float HeadshotMultiplier = 2.f;
 
+
+	//////////////////////////////////////////////////////////////////////////
 	/** Reload time in seconds when there's still a bullet in the magazine */
-	UPROPERTY(EditDefaultsOnly, Category = "Reload")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Reload")
 		float ShortReloadTime = 1.f;
 
 	/** Reload time in seconds when there's no bullet in the magazine */
-	UPROPERTY(EditDefaultsOnly, Category = "Reload")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Reload")
 		float LongReloadTime = 2.f;
 
+
+	//////////////////////////////////////////////////////////////////////////
 	/** Number of rounds in the magazine */
-	UPROPERTY(EditDefaultsOnly, Category = "Magazine")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magazine")
 		int MagazineSize = 30;
 	
 	/** Amount of bullets left in the magazine */
@@ -315,9 +333,11 @@ protected:
 		int CurrentAmmoInReserve = 0;
 	
 	/** Number of ammunition */
-	UPROPERTY(EditDefaultsOnly, Category = "Magazine")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magazine")
 		int MaxAmmo = 150;
 
+
+	//////////////////////////////////////////////////////////////////////////
 	/** Accuracy multiplier when aiming down the sight */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy")
 		float AccuracyMultiplier = 2.f;
@@ -365,6 +385,7 @@ protected:
 	/** Recoil recovery rate */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float RecoilRecoveryRate = 1.f;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Transform)
