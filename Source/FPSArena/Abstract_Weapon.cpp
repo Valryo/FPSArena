@@ -18,16 +18,18 @@ AAbstract_Weapon::AAbstract_Weapon()
 	FP_Gun->SetOnlyOwnerSee(false);
 	FP_Gun->bCastDynamicShadow = true;
 	FP_Gun->CastShadow = true;
-	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
-	//RootComponent = FP_Gun;
 	FP_Gun->SetupAttachment(RootComponent);
 
 	FP_SightSocket = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Sight"));
-	FP_Gun->SetOnlyOwnerSee(false);
-	FP_Gun->bCastDynamicShadow = false;
-	FP_Gun->CastShadow = false;
+	FP_SightSocket->SetOnlyOwnerSee(false);
+	FP_SightSocket->bCastDynamicShadow = true;
+	FP_SightSocket->CastShadow = true;
 	FP_SightSocket->SetupAttachment(FP_Gun);
 
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->FieldOfView = 45.f;
+	Camera->SetupAttachment(FP_Gun);
+	
 	AimingDownSight = false;
 	PendingReload = false;
 	IsEquipped = true;
@@ -64,6 +66,7 @@ void AAbstract_Weapon::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	
 	CurrentFiringSpread = WeaponSpread;
+	Camera->AttachToComponent(FP_Gun, FAttachmentTransformRules::SnapToTargetNotIncludingScale, CameraAttachPoint);
 }
 
 void AAbstract_Weapon::BeginPlay()
@@ -783,17 +786,7 @@ void AAbstract_Weapon::SimulateWeaponFire()
 		MuzzlePSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFX, location, rotation);
 	}
 	
-	if (LoopedFireSound)
-	{
-		if (FireAC == NULL)
-		{
-			FireAC = PlayWeaponSound(FireLoopSound);
-		}
-	}
-	else
-	{
-		PlayWeaponSound(FireSound);
-	}
+	PlayWeaponSound(FireSound);
 }
 
 void AAbstract_Weapon::StopSimulatingWeaponFire()
@@ -802,14 +795,6 @@ void AAbstract_Weapon::StopSimulatingWeaponFire()
 	{
 		MuzzlePSC->DeactivateSystem();
 		MuzzlePSC = NULL;
-	}
-
-	if (FireAC)
-	{
-		FireAC->FadeOut(0.1f, 0.0f);
-		FireAC = NULL;
-
-		PlayWeaponSound(FireFinishSound);
 	}
 }
 
