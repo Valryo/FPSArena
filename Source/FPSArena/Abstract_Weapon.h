@@ -33,6 +33,16 @@ enum class WeaponClass : uint8
 	WC_Burst	UMETA(DisplayName = "Burst Firing")
 };
 
+UENUM(BlueprintType)
+enum class WeaponType : uint8
+{
+	WC_LMG		UMETA(DisplayName = "LMG"),
+	WC_SMG		UMETA(DisplayName = "SMG"),
+	WC_AR		UMETA(DisplayName = "Assault Rifle"),
+	WC_Carbine	UMETA(DisplayName = "Carbine"),
+	WC_Shotgun	UMETA(DisplayName = "Shotgun")
+};
+
 UCLASS(abstract)
 class FPSARENA_API AAbstract_Weapon : public AActor
 {
@@ -45,6 +55,9 @@ class FPSARENA_API AAbstract_Weapon : public AActor
 	/** Location on gun mesh where projectiles should spawn. */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		USkeletalMeshComponent* FP_SightSocket;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+		UCameraComponent* Camera;
 
 public:	
 	// Sets default values for this actor's properties
@@ -136,9 +149,12 @@ protected:
 	/** last time the weapon fired */
 	float LastFireTime;
 
+	UPROPERTY(EditDefaultsOnly, Category = Camera)
+		FName CameraAttachPoint = "CameraSocket";
+
 	/** name of bone/socket for muzzle in weapon mesh */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
-		FName MuzzleAttachPoint;
+		FName MuzzleAttachPoint = "MuzzleFlashSocket";
 
 	/** FX for muzzle flash */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
@@ -245,73 +261,83 @@ public:
 
 protected:
 	/** Weapon Name */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		FString Name;
 
 	/** Weapon description */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		FString Description;
 
 	/** Damage dealt by the projectile */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
 		uint8 NbProjectiles = 1;
 
 	/** Damage dealt by the projectile */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		int32 Damage = 20;
 
 	/** Fire rate in rounds per minutes */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		float FireRate = 600;
 	
 	/** Time between two consecutive shot while burst firing */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
 		float TimeBetweenShotBurstFire = 0.05;
 
 	/** Time between two consecutive shot while burst firing */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
 		int32 NumberBurstShot = 3;
 
 	/** Projectile velocity in meters per second */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		float ProjectileVelocity = 60.f;
 
 	/** Projectile LifeSpan in seconds */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon Properties")
 		float ProjectileLifeSpan = 1.5f;
 
 	/** Class of the weapon : auto, semi-auto, burst */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		WeaponClass WeaponClass = WeaponClass::WC_Auto;
 
+	/** Class of the weapon : auto, semi-auto, burst */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
+		WeaponType WeaponType = WeaponType::WC_AR;
+	
 	/** Headshot damage multiplier */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Properties")
 		float HeadshotMultiplier = 2.f;
 
+
+	//////////////////////////////////////////////////////////////////////////
 	/** Reload time in seconds when there's still a bullet in the magazine */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Reload")
 		float ShortReloadTime = 1.f;
 
 	/** Reload time in seconds when there's no bullet in the magazine */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reload")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Reload")
 		float LongReloadTime = 2.f;
 
+
+	//////////////////////////////////////////////////////////////////////////
 	/** Number of rounds in the magazine */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magazine")
 		int MagazineSize = 30;
 	
 	/** Amount of bullets left in the magazine */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
+	UPROPERTY(EditDefaultsOnly, Replicated, Category = "Magazine")
 		int CurrentAmmoInClip = 0;
 
 	/** Amount of bullet left in the reserve */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Magazine")
+	UPROPERTY(EditDefaultsOnly, Replicated, Category = "Magazine")
 		int CurrentAmmoInReserve = 0;
 	
 	/** Number of ammunition */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magazine")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magazine")
 		int MaxAmmo = 150;
 
+
+	//////////////////////////////////////////////////////////////////////////
 	/** Accuracy multiplier when aiming down the sight */
 	UPROPERTY(EditDefaultsOnly, Category = "Accuracy")
 		float AccuracyMultiplier = 2.f;
@@ -329,76 +355,51 @@ protected:
 		float FiringSpreadMax = 5.f;
 
 	/** Vertical recoil in radians */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float VerticalRecoil = .5f;
 
 	/** Horizontal recoil minimum in radians */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float HorizontalRecoilMin = .175f;
 	
 	/** Horizontal recoil maximum in radians */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float HorizontalRecoilMax = .175f;
 
 	/** Horizontal recoil tolerance */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float HorizontalTolerance = .5f;
 
 	/** Angle of recoil minimum  in degrees */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float AngleMin = 13.f;
 
 	/** Angle or recoil maximum in degrees */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float AngleMax = 15.f;
 
 	/** Recoil recovery delay in seconds */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float RecoilRecoveryDelay = .1f;
 
 	/** Recoil recovery rate */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy|Recoil")
+	UPROPERTY(EditDefaultsOnly, Category = "Accuracy|Recoil")
 		float RecoilRecoveryRate = 1.f;
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float Bloom;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float ConeOfFire;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float AccuracyWalking;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float AccuracyStanding;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float AccuracyCrouching;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float AccuracyCrouchWalking;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accuracy")
-		float AccuracyJumping;*/
 
 	//////////////////////////////////////////////////////////////////////////
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Transform)
+		FTransform SpawnTransform;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Transform)
+		FTransform BackTransform;
 
 
 	//////////////////////////////////////////////////////////////////////////
 	// -===- Sound effect -===-
-
-	/** firing audio (bLoopedFireSound set) */
-	UPROPERTY(Transient)
-		UAudioComponent* FireAC;
-
 	/** Sound to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
-		USoundCue* FireSound;
-
-	/** looped fire sound (bLoopedFireSound set) */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
-		USoundCue* FireLoopSound;
+		USoundCue* FireSound;
 
 	/** finished burst sound (bLoopedFireSound set) */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
@@ -411,10 +412,6 @@ protected:
 	/** reload sound */
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* ReloadSound;
-
-	/** is fire sound looped? */
-	UPROPERTY(EditDefaultsOnly, Category = Sound)
-		bool LoopedFireSound = true;
 
 	/** reload animations */
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
