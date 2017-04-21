@@ -159,7 +159,7 @@ void AAbstract_Weapon::Tick(float DeltaTime)
 		TotalRecoveryY += CurrentRecoveryY;
 		TotalRecoveryX += CurrentRecoveryX;
 
-		if (TotalRecoveryY >= RecoveryY && TotalRecoveryX >= RecoveryX)
+		if (FMath::Abs(TotalRecoveryY) >= FMath::Abs(RecoveryY) && FMath::Abs(TotalRecoveryX) >= FMath::Abs(RecoveryX))
 		{
 			Recovering = false;
 			CurrentRecoveryY = 0.f;
@@ -603,6 +603,8 @@ void AAbstract_Weapon::OnBurstStarted()
 	CurrentFiringSpread = WeaponSpread;
 	HorizontalRecoil = 0.f;
 	TotalHorizontalRecoil = 0.f;
+	CurrentVerticalRecoil = 0.f;
+	CurrentHorizontalRecoil = 0.f;
 
 	// start firing, can be delayed to satisfy TimeBetweenShots
 	const float GameTime = GetWorld()->GetTimeSeconds();
@@ -784,6 +786,7 @@ void AAbstract_Weapon::SimulateWeaponFire()
 	{
 		FVector location = FP_Gun->GetSocketLocation(MuzzleAttachPoint);
 		FRotator rotation = GetActorRotation();
+		rotation.Yaw += 90;
 
 		MuzzlePSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFX, location, rotation);
 	}
