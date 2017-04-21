@@ -20,11 +20,17 @@ AAbstract_Weapon::AAbstract_Weapon()
 	FP_Gun->CastShadow = true;
 	FP_Gun->SetupAttachment(RootComponent);
 
-	FP_SightSocket = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Sight"));
-	FP_SightSocket->SetOnlyOwnerSee(false);
-	FP_SightSocket->bCastDynamicShadow = true;
-	FP_SightSocket->CastShadow = true;
-	FP_SightSocket->SetupAttachment(FP_Gun);
+	SightFront = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SightFront"));
+	SightFront->SetOnlyOwnerSee(false);
+	SightFront->bCastDynamicShadow = true;
+	SightFront->CastShadow = true;
+	SightFront->SetupAttachment(FP_Gun);
+
+	SightRear = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SightRear"));
+	SightRear->SetOnlyOwnerSee(false);
+	SightRear->bCastDynamicShadow = true;
+	SightRear->CastShadow = true;
+	SightRear->SetupAttachment(FP_Gun);
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->FieldOfView = 45.f;
@@ -66,7 +72,10 @@ void AAbstract_Weapon::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	
 	CurrentFiringSpread = WeaponSpread;
+
 	Camera->AttachToComponent(FP_Gun, FAttachmentTransformRules::SnapToTargetNotIncludingScale, CameraAttachPoint);
+	SightFront->AttachToComponent(FP_Gun, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SightFrontAttachPoint);
+	SightRear->AttachToComponent(FP_Gun, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SightRearAttachPoint);
 }
 
 void AAbstract_Weapon::BeginPlay()
@@ -380,9 +389,24 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 
 bool AAbstract_Weapon::ToggleAim_Implementation()
 {
+	if (Role < ROLE_Authority)
+	{
+		ServerToggleAim();
+	}
+
 	AimingDownSight = !AimingDownSight;
 
 	return true;
+}
+
+bool AAbstract_Weapon::ServerToggleAim_Validate()
+{
+	return true;
+}
+
+void AAbstract_Weapon::ServerToggleAim_Implementation()
+{
+	ToggleAim();
 }
 
 void AAbstract_Weapon::StartFiring_Implementation()
@@ -442,7 +466,7 @@ void AAbstract_Weapon::StartReloading_Implementation(bool FromReplication)
 	{
 		ServerStartReload();
 	}
-
+	
 	if (FromReplication || CanReload())
 	{
 		

@@ -54,7 +54,11 @@ class FPSARENA_API AAbstract_Weapon : public AActor
 
 	/** Location on gun mesh where projectiles should spawn. */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		USkeletalMeshComponent* FP_SightSocket;
+		USkeletalMeshComponent* SightFront;
+
+	/** Location on gun mesh where projectiles should spawn. */
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+		USkeletalMeshComponent* SightRear;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		UCameraComponent* Camera;
@@ -77,7 +81,8 @@ protected:
 
 	virtual void Tick(float DeltaTime);
 
-	bool AimingDownSight;
+	UPROPERTY(Transient, Replicated)
+		bool AimingDownSight;
 
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_Reload)
 		bool PendingReload;
@@ -149,11 +154,17 @@ protected:
 	/** last time the weapon fired */
 	float LastFireTime;
 
-	UPROPERTY(EditDefaultsOnly, Category = Camera)
+	UPROPERTY(EditDefaultsOnly, Category = Socket)
+		FName SightFrontAttachPoint = "SightFrontSocket";
+	
+	UPROPERTY(EditDefaultsOnly, Category = Socket)
+		FName SightRearAttachPoint = "SightRearSocket";
+
+	UPROPERTY(EditDefaultsOnly, Category = Socket)
 		FName CameraAttachPoint = "CameraSocket";
 
 	/** name of bone/socket for muzzle in weapon mesh */
-	UPROPERTY(EditDefaultsOnly, Category = Effects)
+	UPROPERTY(EditDefaultsOnly, Category = Effect)
 		FName MuzzleAttachPoint = "MuzzleFlashSocket";
 
 	/** FX for muzzle flash */
@@ -242,6 +253,9 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerAddAmmo();
 
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerToggleAim();
+
 	/** spawn projectile on server */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerFireProjectile(FVector Origin, FVector ShootDir);
@@ -325,11 +339,11 @@ protected:
 		int MagazineSize = 30;
 	
 	/** Amount of bullets left in the magazine */
-	UPROPERTY(EditDefaultsOnly, Replicated, Category = "Magazine")
+	UPROPERTY(Transient, Replicated)
 		int CurrentAmmoInClip = 0;
 
 	/** Amount of bullet left in the reserve */
-	UPROPERTY(EditDefaultsOnly, Replicated, Category = "Magazine")
+	UPROPERTY(Transient, Replicated)
 		int CurrentAmmoInReserve = 0;
 	
 	/** Number of ammunition */
