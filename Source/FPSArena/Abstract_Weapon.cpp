@@ -220,7 +220,7 @@ FVector AAbstract_Weapon::GetCameraDamageStartLocation(const FVector& AimDir) co
 {
 	APlayerController* PC = Instigator ? Cast<APlayerController>(Instigator->Controller) : NULL;
 	
-	FVector OutStartTrace = FVector::ZeroVector;
+	FVector OutStartTrace = FP_Gun->GetSocketLocation(MuzzleAttachPoint);
 
 	if (PC)
 	{
@@ -466,7 +466,7 @@ void AAbstract_Weapon::StartReloading_Implementation(bool FromReplication)
 	{
 		ServerStartReload();
 	}
-	
+
 	if (FromReplication || CanReload())
 	{
 		
@@ -579,7 +579,7 @@ bool AAbstract_Weapon::AddAmmo_Implementation()
 
 	if (CurrentAmmoInReserve < MaxAmmo)
 	{
-		CurrentAmmoInReserve += FMath::Min(MagazineSize, MaxAmmo - CurrentAmmoInReserve);
+		CurrentAmmoInReserve += FMath::Min(MagazineSize * 2, MaxAmmo - CurrentAmmoInReserve);
 
 		return true;
 	}
