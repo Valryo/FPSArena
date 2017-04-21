@@ -387,26 +387,25 @@ void AAbstract_Weapon::ServerFireProjectile_Implementation(FVector Origin, FVect
 	}
 }
 
-bool AAbstract_Weapon::ToggleAim_Implementation()
+bool AAbstract_Weapon::SetAim_Implementation(bool isAiming)
 {
 	if (Role < ROLE_Authority)
 	{
-		ServerToggleAim();
+		ServerToggleAim(isAiming);
 	}
-
-	AimingDownSight = !AimingDownSight;
+	AimingDownSight = isAiming;
 
 	return true;
 }
 
-bool AAbstract_Weapon::ServerToggleAim_Validate()
+bool AAbstract_Weapon::ServerToggleAim_Validate(bool isAiming)
 {
 	return true;
 }
 
-void AAbstract_Weapon::ServerToggleAim_Implementation()
+void AAbstract_Weapon::ServerToggleAim_Implementation(bool isAiming)
 {
-	ToggleAim();
+	SetAim(isAiming);
 }
 
 void AAbstract_Weapon::StartFiring_Implementation()

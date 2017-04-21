@@ -254,7 +254,7 @@ protected:
 		void ServerAddAmmo();
 
 	UFUNCTION(reliable, server, WithValidation)
-		void ServerToggleAim();
+		void ServerToggleAim(bool isAiming);
 
 	/** spawn projectile on server */
 	UFUNCTION(reliable, server, WithValidation)
@@ -449,7 +449,7 @@ public :
 		void ClientStartReload();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
-		bool ToggleAim();
+		bool SetAim(bool isAiming);
 
 	/** Fires a projectile. */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Weapon")
