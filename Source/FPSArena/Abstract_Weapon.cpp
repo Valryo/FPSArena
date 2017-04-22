@@ -204,7 +204,7 @@ bool AAbstract_Weapon::CanReload() const
 	bool GotAmmo = (CurrentAmmoInClip < MagazineSize) && (CurrentAmmoInReserve > 0);
 	bool StateOKToReload = ((CurrentState == EWeapon::Idle) || (CurrentState == EWeapon::Firing));
 
-	return ((GotAmmo == true) && (StateOKToReload == true));
+	return ((GotAmmo == true) && (StateOKToReload == true) && AimingDownSight == false);
 }
 
 FVector AAbstract_Weapon::GetCameraDamageStartLocation(const FVector& AimDir) const
@@ -319,6 +319,8 @@ void AAbstract_Weapon::FireWeapon_Implementation()
 				ServerFireProjectile(Origin, AimDir);
 			}
 			
+			MakeNoise(1.f, Instigator, Instigator->GetActorLocation());
+
 			Fired = true;
 		}
 	}
