@@ -1,0 +1,8 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+"C:\Users\Paul\Documents\Git\FPSArena\Plugins\AdvancedSessions\Intermediate\Build\Win64\UE4\Development\AdvancedSessions\PCH.AdvancedSessions.h.obj"
+"C:\Users\Paul\Documents\Git\FPSArena\Plugins\AdvancedSessions\Intermediate\Build\Win64\UE4\Development\AdvancedSessions\Module.AdvancedSessions.cpp.obj"
+"C:\Users\Paul\Documents\Git\FPSArena\Plugins\AdvancedSessions\Intermediate\Build\Win64\UE4\Development\AdvancedSessions\AdvancedSessions.generated.cpp.obj"
+/OUT:"C:\Users\Paul\Documents\Git\FPSArena\Plugins\AdvancedSessions\Binaries\Win64\UE4-AdvancedSessions.lib"
