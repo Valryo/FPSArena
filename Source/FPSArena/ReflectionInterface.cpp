@@ -8,71 +8,43 @@
 
 TArray<TSubclassOf<AAbstract_Weapon>> UReflectionInterface::getAllWeaponClasses()
 {
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(FName("AssetRegistry"));
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+	/*FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(FName("AssetRegistry"));
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();*/
 	
 	// Get all assets in the path, does not load them
 	TArray<FAssetData> AssetList;
-	AssetRegistry.GetAssetsByPath(FName("/Game/Weapon/FPWeapon/Blueprint"), AssetList, /*bRecursive=*/true);
+	//AssetRegistry.GetAssetsByPath(FName("/Game/Weapon/FPWeapon/Blueprint"), AssetList, /*bRecursive=*/true);
 	
-	auto Library = UObjectLibrary::CreateLibrary(AAbstract_Weapon::StaticClass(), true, GIsEditor);
-	Library->LoadBlueprintAssetDataFromPath("/Game/Weapon/FPWeapon/Blueprint");
-
-	TArray<FAssetData> Assets;
-	Library->GetAssetDataList(Assets);
-
 	// Ensure all assets are loaded and store their class
 	TArray<TSubclassOf<AAbstract_Weapon>> EventClasses;
-	for (const FAssetData& Asset : Assets)
+	//for (const FAssetData& Asset : AssetList)
+	//{
+	//	if (!Asset.IsAssetLoaded())
+	//	{
+	//		Asset.GetAsset();
+	//	}
+	//	
+
+	//	//// Skip non blueprint assets
+	//	//const UBlueprint* BlueprintObj = Cast<UBlueprint>(Asset.GetAsset());
+	//	//if (!BlueprintObj)
+	//	//	continue;
+	//	//
+	//	//// Check whether blueprint class has parent class we're looking for
+	//	//UClass* BlueprintClass = BlueprintObj->GeneratedClass;
+	//	//if (!BlueprintClass || !BlueprintClass->IsChildOf(AAbstract_Weapon::StaticClass()))
+	//	//	continue;
+
+	//	//// Store class
+	//	//EventClasses.Add(BlueprintClass);
+	//}
+
+	for (TObjectIterator<UClass>Itr; Itr; ++Itr)
 	{
-		//if (Asset.AssetName.ToString().StartsWith("BP_Weapon_"))
-		//{
-		//	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, Asset.AssetName.ToString());
-		//	Asset.GetAsset();
-		//	//EventClasses.Add(Asset.GetClass());
-		//	
-		//}
-
-		const UBlueprint* BlueprintObj = Cast<UBlueprint>(Asset.GetAsset());
-		if (BlueprintObj)
+		if (Itr->IsChildOf(AAbstract_Weapon::StaticClass()))
 		{
-			UClass* BlueprintClass = BlueprintObj->GeneratedClass;
-			if (BlueprintClass)
-			{
-				EventClasses.Add(BlueprintClass);
-			}
+			EventClasses.Add(*Itr);
 		}
-		else
-		{
-			FString GeneratedClassName = Asset.AssetName.ToString().Append("_C");
-
-			UClass* Class = FindObject<UClass>(Asset.GetPackage(), *GeneratedClassName);
-			if (Class)
-			{
-				EventClasses.Add(Class);
-			}
-			else
-			{
-				UObjectRedirector* RenamedClassRedirector = FindObject<UObjectRedirector>(Asset.GetPackage(), *GeneratedClassName);
-				if (RenamedClassRedirector)
-				{
-					EventClasses.Add(CastChecked<UClass>(RenamedClassRedirector->DestinationObject));
-				}
-			}
-		}
-
-		//// Skip non blueprint assets
-		//const UBlueprint* BlueprintObj = Cast<UBlueprint>(Asset.GetAsset());
-		//if (!BlueprintObj)
-		//	continue;
-		//
-		//// Check whether blueprint class has parent class we're looking for
-		//UClass* BlueprintClass = BlueprintObj->GeneratedClass;
-		//if (!BlueprintClass || !BlueprintClass->IsChildOf(AAbstract_Weapon::StaticClass()))
-		//	continue;
-
-		//// Store class
-		//EventClasses.Add(BlueprintClass);
 	}
 		
 	return EventClasses;
