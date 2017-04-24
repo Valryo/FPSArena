@@ -17,4 +17,10 @@ class FPSARENA_API UReflectionInterface : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, Category = "Reflection")
 		static TArray<TSubclassOf<AAbstract_Weapon>> getAllWeaponClasses();
+
+	UFUNCTION(BlueprintCallable, Category = "Reflection")
+		static FString WeaponTypeToString(WeaponType wt);
+
+	UFUNCTION(BlueprintCallable, Category = "Reflection")
+		static FString WeaponClassToString(WeaponClass wc);
 };

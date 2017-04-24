@@ -485,9 +485,10 @@ void AAbstract_Weapon::StartReloading_Implementation(bool FromReplication)
 
 		if (MyPawn && MyPawn->IsLocallyControlled())
 		{
-			PlayWeaponSound(ReloadSound);
+			
 		}
 
+		PlayWeaponSound(ReloadSound);
 		PlayWeaponAnimation(ReloadAnim);
 	}
 }
