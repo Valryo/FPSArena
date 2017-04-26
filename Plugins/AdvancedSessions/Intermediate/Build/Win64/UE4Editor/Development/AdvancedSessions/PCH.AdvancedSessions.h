@@ -1,4 +1,4 @@
-// PCH for C:\Users\Paul\Documents\Git\FPSArena\Plugins\AdvancedSessions\Source\AdvancedSessions\Classes\OnlineSubSystemHeader.h
+// PCH for F:\Workspace UE\FPSArena\Plugins\AdvancedSessions\Source\AdvancedSessions\Classes\OnlineSubSystemHeader.h
 #define UE_EDITOR 1
 #define IS_PROGRAM 0
 #define WITH_DEV_AUTOMATION_TESTS 1
@@ -124,4 +124,4 @@
 #define NETWORKING_API DLLIMPORT
 #define SOCKETS_PACKAGE 1
 #define SOCKETS_API DLLIMPORT
-#include "C:\Users\Paul\Documents\Git\FPSArena\Plugins\AdvancedSessions\Source\AdvancedSessions\Classes\OnlineSubSystemHeader.h"
+#include "F:\Workspace UE\FPSArena\Plugins\AdvancedSessions\Source\AdvancedSessions\Classes\OnlineSubSystemHeader.h"
